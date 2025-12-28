@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MV Drywall Invoice & Estimate Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 1px rgba(102, 126, 234, 0.3);
+            padding: 40px;
+            border: 1px solid #2a2a2a;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .subtitle {
+            color: #aaaaaa;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s, background-color 0.3s;
+            font-family: inherit;
+            background-color: #2a2a2a;
+            color: #ffffff;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background-color: #333333;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #777777;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888888' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+
+        select option {
+            background-color: #2a2a2a;
+            color: #ffffff;
+        }
+
+        .location-info {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #aaaaaa;
+            border: 1px solid #333333;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(74, 74, 74, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 74, 74, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #3a3a3a;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MV Drywall Invoice & Estimate Generator</h1>
+        <p class="subtitle">Create professional invoices and estimates quickly and easily</p>
+
+        <form id="invoiceForm">
+            <div class="form-group">
+                <label for="documentType">Document Type *</label>
+                <select id="documentType" required>
+                    <option value="invoice">Invoice</option>
+                    <option value="estimate">Estimate</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="customer">Select Customer *</label>
+                <select id="customer" required>
+                    <option value="">-- Choose a Customer --</option>
+                    <option value="john-smith">John Smith - John Smith Construction</option>
+                    <option value="sarah-johnson">Sarah Johnson - Johnson Home Builders</option>
+                    <option value="mike-anderson">Mike Anderson - Anderson Development LLC</option>
+                    <option value="lisa-martinez">Lisa Martinez - Martinez Custom Homes</option>
+                    <option value="david-chen">David Chen - Chen Properties Inc</option>
+                    <option value="custom">Custom Customer (Enter Below)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="customCustomerGroup" style="display: none;">
+                <label for="customCustomerName">Customer Name *</label>
+                <input type="text" id="customCustomerName" placeholder="Enter customer name">
+                
+                <label for="customCustomerBusiness" style="margin-top: 15px;">Business Name</label>
+                <input type="text" id="customCustomerBusiness" placeholder="Enter business name">
+                
+                <label for="customCustomerPhone" style="margin-top: 15px;">Phone Number</label>
+                <input type="text" id="customCustomerPhone" placeholder="e.g., (402) 123-4567">
+            </div>
+
+            <div class="form-group">
+                <label for="streetAddress">Job Site Street Address *</label>
+                <input type="text" id="streetAddress" placeholder="e.g., 123 Main Street" required>
+                <div class="location-info" id="locationInfo">
+                    Location will be auto-detected based on your current position
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div class="form-group">
+                    <label for="invoiceDate">Invoice Date *</label>
+                    <input type="date" id="invoiceDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="jobDate">Job Date</label>
+                    <input type="text" id="jobDate" placeholder="e.g., 12/15/25 or N/A">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Amount *</label>
+                <input type="number" id="amount" step="0.01" min="0" placeholder="Enter total amount" required>
+            </div>
+
+            <div class="form-group">
+                <label for="comments">Comments</label>
+                <textarea id="comments" rows="3" placeholder="Enter any comments or leave as N/A..."></textarea>
+            </div>
+
+            <button type="submit" id="submitButton">Generate & Download Invoice PDF</button>
+        </form>
+
+        <div class="success-message" id="successMessage">
+            Invoice PDF generated and downloaded successfully!
+        </div>
+    </div>
+
+    <script>
+        // Customer database
+        const customers = {
+            'john-smith': {
+                name: 'John Smith',
+                business: 'John Smith Construction',
+                phone: '(402) 123-4567'
+            },
+            'sarah-johnson': {
+                name: 'Sarah Johnson',
+                business: 'Johnson Home Builders',
+                phone: '(402) 234-5678'
+            },
+            'mike-anderson': {
+                name: 'Mike Anderson',
+                business: 'Anderson Development LLC',
+                phone: '(402) 345-6789'
+            },
+            'lisa-martinez': {
+                name: 'Lisa Martinez',
+                business: 'Martinez Custom Homes',
+                phone: '(402) 456-7890'
+            },
+            'david-chen': {
+                name: 'David Chen',
+                business: 'Chen Properties Inc',
+                phone: '(402) 567-8901'
+            }
+        };
+
+        // Current location
+        let currentLocation = {
+            city: '',
+            state: '',
+            zipCode: ''
+        };
+
+        // Get current location on page load
+        window.addEventListener('load', () => {
+            getCurrentLocation();
+            setTodayDate();
+        });
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        await reverseGeocode(latitude, longitude);
+                    },
+                    (error) => {
+                        document.getElementById('locationInfo').innerHTML = 
+                            'Location access denied. City, State, and ZIP will need to be entered manually.';
+                        console.error('Geolocation error:', error);
+                    }
+                );
+            } else {
+                document.getElementById('locationInfo').innerHTML = 
+                    'Geolocation not supported. City, State, and ZIP will need to be entered manually.';
+            }
+        }
+
+        async function reverseGeocode(lat, lon) {
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`
+                );
+                const data = await response.json();
+                
+                if (data.address) {
+                    currentLocation.city = data.address.city || data.address.town || data.address.village || '';
+                    currentLocation.state = data.address.state || '';
+                    currentLocation.zipCode = data.address.postcode || '';
+                    
+                    document.getElementById('locationInfo').innerHTML = 
+                        `Current Location: ${currentLocation.city}, ${currentLocation.state} ${currentLocation.zipCode}`;
+                } else {
+                    throw new Error('No address data');
+                }
+            } catch (error) {
+                document.getElementById('locationInfo').innerHTML = 
+                    'Could not detect location. City, State, and ZIP will need to be entered manually.';
+                console.error('Reverse geocoding error:', error);
+            }
+        }
+
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('invoiceDate').value = today;
+        }
+
+        document.getElementById('customer').addEventListener('change', (e) => {
+            const customGroup = document.getElementById('customCustomerGroup');
+            if (e.target.value === 'custom') {
+                customGroup.style.display = 'block';
+                document.getElementById('customCustomerName').required = true;
+            } else {
+                customGroup.style.display = 'none';
+                document.getElementById('customCustomerName').required = false;
+            }
+        });
+
+        document.getElementById('documentType').addEventListener('change', (e) => {
+            const docType = e.target.value;
+            const submitButton = document.getElementById('submitButton');
+            const displayType = docType.charAt(0).toUpperCase() + docType.slice(1);
+            submitButton.textContent = `Generate & Download ${displayType} PDF`;
+        });
+
+        document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const documentType = document.getElementById('documentType').value;
+            const customerSelect = document.getElementById('customer').value;
+            let customerInfo;
+            
+            if (customerSelect === 'custom') {
+                const customName = document.getElementById('customCustomerName').value;
+                const customBusiness = document.getElementById('customCustomerBusiness').value;
+                const customPhone = document.getElementById('customCustomerPhone').value;
+                customerInfo = {
+                    name: customName,
+                    business: customBusiness,
+                    phone: customPhone
+                };
+            } else {
+                customerInfo = customers[customerSelect];
+            }
+            
+            const streetAddress = document.getElementById('streetAddress').value;
+            const fullAddress = `${streetAddress}, ${currentLocation.city}, ${currentLocation.state} ${currentLocation.zipCode}`;
+            const invoiceDate = document.getElementById('invoiceDate').value;
+            const jobDate = document.getElementById('jobDate').value || 'N/A';
+            const amount = parseFloat(document.getElementById('amount').value);
+            const comments = document.getElementById('comments').value || 'N/A';
+            
+            generatePDF({
+                documentType,
+                customer: customerInfo,
+                address: fullAddress,
+                invoiceDate,
+                jobDate,
+                amount,
+                comments
+            });
+        });
+
+        function generatePDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            let yPos = 20;
+            
+            // Document type header (INVOICE or ESTIMATE) - large, bold
+            const docTypeDisplay = data.documentType.toUpperCase();
+            doc.setFontSize(28);
+            doc.setFont(undefined, 'bold');
+            doc.text(docTypeDisplay, 20, yPos);
+            yPos += 15;
+            
+            // Company name and address
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text('MV Drywall Inc.', 20, yPos);
+            yPos += 6;
+            doc.text('1500 Garden St', 20, yPos);
+            yPos += 5;
+            doc.text('Manor, NE 68000', 20, yPos);
+            yPos += 6;
+            doc.text('(100)-100-9000', 20, yPos);
+            yPos += 10;
+            
+            // DATE
+            doc.setFont(undefined, 'bold');
+            const formattedDate = new Date(data.invoiceDate).toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: '2-digit'
+            });
+            doc.text(`DATE: ${formattedDate}`, 20, yPos);
+            yPos += 10;
+            
+            // BILL TO
+            doc.setFont(undefined, 'normal');
+            doc.text('BILL TO', 20, yPos);
+            yPos += 6;
+            
+            // Customer name
+            doc.text(data.customer.name, 20, yPos);
+            yPos += 6;
+            
+            // Customer business and phone
+            if (data.customer.business || data.customer.phone) {
+                const businessLine = data.customer.business || '';
+                const phoneLine = data.customer.phone || '';
+                const combinedLine = businessLine + (businessLine && phoneLine ? ' ' : '') + phoneLine;
+                doc.text(combinedLine, 20, yPos);
+                yPos += 10;
+            } else {
+                yPos += 4;
+            }
+            
+            yPos += 6;
+            
+            // Table headers
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(10);
+            doc.text('HOUSE ADDRESS', 20, yPos);
+            doc.text('JOB DATE', 110, yPos);
+            doc.text('AMOUNT', 160, yPos);
+            yPos += 2;
+            
+            // Draw line under headers
+            doc.setLineWidth(0.5);
+            doc.line(20, yPos, 190, yPos);
+            yPos += 8;
+            
+            // Table content
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            
+            // Address (with word wrap if needed)
+            const addressLines = doc.splitTextToSize(data.address, 85);
+            doc.text(addressLines, 20, yPos);
+            
+            // Job date
+            doc.text(data.jobDate, 110, yPos);
+            
+            // Amount
+            doc.setFont(undefined, 'bold');
+            doc.text(`$${data.amount.toFixed(2)}`, 160, yPos);
+            
+            const addressHeight = addressLines.length * 5;
+            yPos += Math.max(addressHeight, 6) + 6;
+            
+            // TOTAL row
+            doc.setFont(undefined, 'normal');
+            doc.text('TOTAL', 110, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(`$${data.amount.toFixed(2)}`, 160, yPos);
+            yPos += 10;
+            
+            // Comments
+            doc.setFont(undefined, 'bold');
+            doc.text(`Comments: ${data.comments}`, 20, yPos);
+            
+            // Generate filename
+            const dateStr = formattedDate.replace(/\//g, '-');
+            const customerName = data.customer.name.replace(/\s+/g, '_');
+            const docTypeFile = data.documentType.charAt(0).toUpperCase() + data.documentType.slice(1);
+            const fileName = `MV_Drywall_${docTypeFile}_${customerName}_${dateStr}.pdf`;
+            
+            // Save PDF
+            doc.save(fileName);
+            
+            // Show success message
+            const successMsg = document.getElementById('successMessage');
+            const docTypeDisplay = data.documentType.charAt(0).toUpperCase() + data.documentType.slice(1);
+            successMsg.textContent = `${docTypeDisplay} PDF generated and downloaded successfully!`;
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
