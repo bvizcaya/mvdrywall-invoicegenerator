@@ -437,8 +437,30 @@
                     customerInfo = customers[customerSelect];
                 }
                 
-                const streetAddress = document.getElementById('streetAddress').value;
-                const fullAddress = `${streetAddress}, ${currentLocation.city}, ${currentLocation.state} ${currentLocation.zipCode}`;
+                const streetAddress = document.getElementById('streetAddress').value.trim();
+                // Smart address construction - avoid duplicate city names
+                // Examples:
+                //   Input: "1234 Red St, Oaktown" + Geocoded: "Oaktown, NY 91000"
+                //   Result: "1234 Red St, Oaktown" (user already has city, don't duplicate)
+                //
+                //   Input: "1234 Red St" + Geocoded: "Oaktown, NY 91000"  
+                //   Result: "1234 Red St, Oaktown, NY 91000" (append geocoded data)
+                let fullAddress;
+
+                // Check if the user already included city/state in their street address
+                const streetLower = streetAddress.toLowerCase();
+                const cityLower = currentLocation.city.toLowerCase();
+
+                if (streetLower.includes(cityLower) || 
+                    streetLower.includes(currentLocation.state.toLowerCase()) ||
+                    streetLower.includes(currentLocation.zipCode)) {
+                    // User already typed city/state/zip, just use what they typed
+                    fullAddress = streetAddress;
+                } else {
+                    // Append the geocoded city, state, zip
+                    fullAddress = `${streetAddress}, ${currentLocation.city}, ${currentLocation.state} ${currentLocation.zipCode}`;
+                }
+
                 const invoiceDate = document.getElementById('invoiceDate').value;
                 const jobDate = document.getElementById('jobDate').value || 'N/A';
                 const amount = parseFloat(document.getElementById('amount').value);
