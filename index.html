@@ -172,8 +172,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>MV Drywall Invoice & Estimate Generator</h1>
-        <p class="subtitle">Create professional invoices and estimates quickly and easily</p>
+        <h1>MV Drywall Invoices</h1>
+        <p class="subtitle"> Fill required fields to create invoice or estimate</p>
 
         <form id="invoiceForm">
             <div class="form-group">
@@ -188,11 +188,7 @@
                 <label for="customer">Select Customer *</label>
                 <select id="customer" required>
                     <option value="">-- Choose a Customer --</option>
-                    <option value="john-smith">John Smith - John Smith Construction</option>
-                    <option value="sarah-johnson">Sarah Johnson - Johnson Home Builders</option>
-                    <option value="mike-anderson">Mike Anderson - Anderson Development LLC</option>
-                    <option value="lisa-martinez">Lisa Martinez - Martinez Custom Homes</option>
-                    <option value="david-chen">David Chen - Chen Properties Inc</option>
+                    <option value="Showcase Homes, Inc.">Showcase Homes, Inc.</option>
                     <option value="custom">Custom Customer (Enter Below)</option>
                 </select>
             </div>
@@ -249,31 +245,12 @@
     <script>
         // Customer database
         const customers = {
-            'john-smith': {
-                name: 'John Smith',
-                business: 'John Smith Construction',
-                phone: '(402) 123-4567'
+            'Showcase Homes, Inc.': {
+                name: 'Showcase Homes, Inc.',
+                business: '20202 Patton St, <br> Gretna, NE 68028',
+                phone: 'N/A'
             },
-            'sarah-johnson': {
-                name: 'Sarah Johnson',
-                business: 'Johnson Home Builders',
-                phone: '(402) 234-5678'
-            },
-            'mike-anderson': {
-                name: 'Mike Anderson',
-                business: 'Anderson Development LLC',
-                phone: '(402) 345-6789'
-            },
-            'lisa-martinez': {
-                name: 'Lisa Martinez',
-                business: 'Martinez Custom Homes',
-                phone: '(402) 456-7890'
-            },
-            'david-chen': {
-                name: 'David Chen',
-                business: 'Chen Properties Inc',
-                phone: '(402) 567-8901'
-            }
+
         };
 
         // Current location
