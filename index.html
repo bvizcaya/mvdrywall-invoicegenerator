@@ -246,6 +246,33 @@
     </div>
 
     <script>
+        // Google Sheets logging endpoint (Apps Script web app)
+        const SHEET_LOG_URL = 'https://script.google.com/macros/s/AKfycbzzbctiNuqKW10e1Uzwdzv6R9SeApVNhE4silRcbL0VpSV-Za7dbJW9bJ2dYGijqgqRJw/exec';
+
+        // Logs an invoice/estimate to the Google Sheet in the background.
+        // Fire-and-forget: never blocks or interrupts the user's PDF download.
+        function logToSheet(data) {
+            try {
+                fetch(SHEET_LOG_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Apps Script doesn't send CORS headers; no-cors avoids errors
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        documentType: data.documentType,
+                        customerName: data.customer.name || '',
+                        customerBusiness: data.customer.business || '',
+                        address: data.address || '',
+                        invoiceDate: data.invoiceDate || '',
+                        jobDate: data.jobDate || '',
+                        amount: data.amount || '',
+                        comments: data.comments || ''
+                    })
+                }).catch(err => console.error('Sheet logging failed:', err));
+            } catch (err) {
+                console.error('Sheet logging error:', err);
+            }
+        }
+
         // Customer database
         const customers = {
             'new-york-homes': {
@@ -611,6 +638,9 @@
             
             // Save PDF
             doc.save(fileName);
+            
+            // Log this invoice to the Google Sheet (background, non-blocking)
+            logToSheet(data);
             
             // Show success message
             const successMsg = document.getElementById('successMessage');
