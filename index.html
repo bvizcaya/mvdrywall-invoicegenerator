@@ -549,6 +549,11 @@
             
             yPos += 6;
             
+            // Line above the header row
+            doc.setLineWidth(0.4);
+            doc.line(leftMargin, yPos, rightEdge, yPos);
+            yPos += 6;
+            
             // Table headers
             doc.setFont(undefined, 'bold');
             doc.setFontSize(12);
@@ -585,11 +590,17 @@
             doc.text('TOTAL', 120, yPos);
             doc.setFont(undefined, 'bold');
             doc.text(`$${data.amount.toFixed(2)}`, 162, yPos);
+            yPos += 5;
+            
+            // Line below the TOTAL row
+            doc.setLineWidth(0.4);
+            doc.line(leftMargin, yPos, rightEdge, yPos);
             yPos += 12;
             
-            // Comments (bold)
-            doc.setFont(undefined, 'bold');
+            // Comments - bold only when left as N/A, normal weight when text is added
             doc.setFontSize(11);
+            const commentsIsDefault = data.comments.trim().toUpperCase() === 'N/A';
+            doc.setFont(undefined, commentsIsDefault ? 'bold' : 'normal');
             doc.text(`Comments: ${data.comments}`, leftMargin, yPos);
             
             // Generate filename
