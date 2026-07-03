@@ -519,6 +519,12 @@
             const rightEdge = 190;
             let yPos = 22;
             
+            // Formats a number as currency with thousands commas, e.g. 23350 -> $23,350.00
+            const formatMoney = (n) => '$' + Number(n).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            
             // Small document type label (INVOICE or ESTIMATE) above company name
             const docTypeDisplay = data.documentType.toUpperCase();
             doc.setFontSize(12);
@@ -607,7 +613,7 @@
             
             // Amount (bold)
             doc.setFont(undefined, 'bold');
-            doc.text(`$${data.amount.toFixed(2)}`, 162, yPos);
+            doc.text(formatMoney(data.amount), 162, yPos);
             
             const addressHeight = addressLines.length * 5;
             yPos += Math.max(addressHeight, 6) + 8;
@@ -616,7 +622,7 @@
             doc.setFont(undefined, 'normal');
             doc.text('TOTAL', 120, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text(`$${data.amount.toFixed(2)}`, 162, yPos);
+            doc.text(formatMoney(data.amount), 162, yPos);
             yPos += 5;
             
             // Line below the TOTAL row
