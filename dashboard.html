@@ -73,13 +73,15 @@
             color: var(--accent); border-color: rgba(245,166,35,0.4); background: var(--accent-soft);
         }
 
-        .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
         .kpi { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px; padding: 20px; }
         .kpi .label {
             font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-dim); margin-bottom: 10px;
         }
         .kpi .value { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
         .kpi .value.accent { color: var(--accent); }
+        .kpi .value.up { color: #4caf7d; }
+        .kpi .value.down { color: #e0736d; }
         .kpi .sub { font-size: 12px; color: var(--ink-dim); margin-top: 6px; }
 
         .panel {
@@ -91,6 +93,16 @@
         .panel-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .chart-box { position: relative; height: 300px; }
         .chart-box.tall { height: 330px; }
+
+        /* Heatmap */
+        #heatmap { display: flex; flex-direction: column; gap: 4px; overflow-x: auto; }
+        .hm-row { display: grid; grid-template-columns: 48px repeat(12, 1fr); gap: 4px; align-items: center; }
+        .hm-corner, .hm-monthhead { font-size: 11px; color: var(--ink-dim); text-align: center; }
+        .hm-yearlabel { font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+        .hm-cell {
+            height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: rgba(255,255,255,0.85); cursor: default; min-width: 34px;
+        }
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th {
@@ -135,14 +147,23 @@
         <div id="content" style="display:none;">
             <div class="filters">
                 <div class="filter-field">
+                    <label>Quick range</label>
+                    <div class="quick-btns" id="quickBtns">
+                        <button onclick="quickRange(90, this)">Past 90 days</button>
+                        <button onclick="quickRange(180, this)">Past 6 months</button>
+                        <button onclick="quickRange(365, this)">Past year</button>
+                        <button onclick="quickRange(0, this)" class="active">All time</button>
+                    </div>
+                </div>
+                <div class="filter-field">
                     <label for="yearFilter">Year</label>
-                    <select id="yearFilter" onchange="applyFilters()">
+                    <select id="yearFilter" onchange="dropdownChanged()">
                         <option value="">All years</option>
                     </select>
                 </div>
                 <div class="filter-field">
                     <label for="monthFilter">Month</label>
-                    <select id="monthFilter" onchange="applyFilters()">
+                    <select id="monthFilter" onchange="dropdownChanged()">
                         <option value="">All months</option>
                         <option value="0">January</option>
                         <option value="1">February</option>
@@ -182,12 +203,47 @@
                     <div class="value" id="kpiAvg">$0</div>
                     <div class="sub" id="kpiAvgSub">—</div>
                 </div>
+                <div class="kpi">
+                    <div class="label">YoY Growth</div>
+                    <div class="value" id="kpiYoY">—</div>
+                    <div class="sub" id="kpiYoYSub">vs last full year</div>
+                </div>
             </div>
 
             <div class="panel">
                 <h2>Revenue by Month</h2>
                 <div class="hint">Actual invoiced revenue. Dashed segment is a simple trend projection — an estimate, not a guarantee.</div>
                 <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+            </div>
+
+            <div class="panel">
+                <h2>Cumulative Revenue</h2>
+                <div class="hint" id="cumulativeHint">Revenue building up over the year — shows your pace.</div>
+                <div class="chart-box"><canvas id="cumulativeChart"></canvas></div>
+            </div>
+
+            <div class="panel">
+                <h2>Year-over-Year by Month</h2>
+                <div class="hint" id="yoyHint">Each year's monthly revenue overlaid, so you can compare the same month across years.</div>
+                <div class="chart-box"><canvas id="yoyChart"></canvas></div>
+            </div>
+
+            <div class="panel">
+                <h2>Rolling 12-Month Revenue</h2>
+                <div class="hint">Trailing-year total at each month — strips out seasonal swings to show the underlying trajectory.</div>
+                <div class="chart-box"><canvas id="rollingChart"></canvas></div>
+            </div>
+
+            <div class="panel">
+                <h2>Revenue Forecast</h2>
+                <div class="hint" id="forecastHint">Seasonality-aware projection for the next few months. An estimate with a likely range — not a guarantee.</div>
+                <div class="chart-box"><canvas id="forecastChart"></canvas></div>
+            </div>
+
+            <div class="panel">
+                <h2>Revenue Heatmap</h2>
+                <div class="hint">Every month across all years. Darker amber = more revenue. Quickly reveals seasonal patterns.</div>
+                <div id="heatmap"></div>
             </div>
 
             <div class="panel-row">
@@ -305,12 +361,48 @@
                 years.map(y => `<option value="${y}">${y}</option>`).join('');
         }
 
+        // Holds the active rolling range in days; 0 = all time
+        let quickRangeDays = 0;
+
+        // Clicking a quick-pick button: clears year/month dropdowns and applies a rolling range
+        function quickRange(days, btn) {
+            quickRangeDays = days;
+            document.querySelectorAll('#quickBtns button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Quick picks and year/month are two modes of the same time filter — reset dropdowns
+            document.getElementById('yearFilter').value = '';
+            document.getElementById('monthFilter').value = '';
+            applyFilters();
+        }
+
+        // Using a year/month dropdown turns off any active quick pick
+        function dropdownChanged() {
+            quickRangeDays = 0;
+            document.querySelectorAll('#quickBtns button').forEach(b => b.classList.remove('active'));
+            // Re-highlight "All time" only if both dropdowns are cleared
+            const y = document.getElementById('yearFilter').value;
+            const m = document.getElementById('monthFilter').value;
+            if (y === '' && m === '') {
+                document.querySelector('#quickBtns button:last-child').classList.add('active');
+            }
+            applyFilters();
+        }
+
         function applyFilters() {
             const year = document.getElementById('yearFilter').value;
             const month = document.getElementById('monthFilter').value;
             const client = document.getElementById('custFilter').value;
 
+            // Rolling cutoff for quick picks
+            let cutoff = null;
+            if (quickRangeDays > 0) {
+                cutoff = new Date();
+                cutoff.setDate(cutoff.getDate() - quickRangeDays);
+                cutoff.setHours(0, 0, 0, 0);
+            }
+
             filtered = allData.filter(d => {
+                if (cutoff && d.date < cutoff) return false;
                 if (year !== '' && d.date.getFullYear() !== Number(year)) return false;
                 if (month !== '' && d.date.getMonth() !== Number(month)) return false;
                 if (client && d.client !== client) return false;
@@ -338,6 +430,12 @@
             const sortedClients = Object.entries(byClient).sort((a, b) => b[1] - a[1]);
 
             renderRevenueByMonth(invoices);
+            renderCumulative(invoices);
+            renderYoY(invoices);
+            renderRolling(invoices);
+            renderForecast(invoices);
+            renderHeatmap(invoices);
+            renderYoYKpi(invoices);
             renderAvgPrice(invoices);
             renderDistribution(invoices);
             renderTopClients(sortedClients);
@@ -361,6 +459,273 @@
                 map[k].count += 1;
             });
             return map;
+        }
+
+        const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        function renderCumulative(invoices) {
+            // Build cumulative running total across the filtered months, in date order
+            const map = groupByMonth(invoices);
+            const keys = Object.keys(map).sort();
+            let running = 0;
+            const cum = keys.map(k => { running += map[k].sum; return running; });
+
+            drawChart('cumulativeChart', {
+                type: 'line',
+                data: {
+                    labels: keys.map(monthLabel),
+                    datasets: [{
+                        data: cum,
+                        borderColor: '#f5a623',
+                        backgroundColor: 'rgba(245,166,35,0.12)',
+                        fill: true, tension: 0.25,
+                        pointBackgroundColor: '#f5a623', pointRadius: 3
+                    }]
+                    // A future goal line could be added here as a second flat dataset.
+                },
+                options: { plugins: { legend: { display: false } }, scales: moneyScales() }
+            });
+        }
+
+        function renderYoY(invoices) {
+            // Group revenue by year, then by month index (0-11)
+            const byYear = {};
+            invoices.forEach(d => {
+                const y = d.date.getFullYear();
+                const m = d.date.getMonth();
+                if (!byYear[y]) byYear[y] = new Array(12).fill(0);
+                byYear[y][m] += d.amount;
+            });
+
+            const years = Object.keys(byYear).sort();
+            const palette = ['#f5a623', '#4a90d9', '#4caf7d', '#c77dff', '#e0736d'];
+
+            // Only show months up to the latest month that has any data, to avoid a long empty tail
+            let maxMonth = 0;
+            years.forEach(y => byYear[y].forEach((v, i) => { if (v > 0 && i > maxMonth) maxMonth = i; }));
+            const monthCount = Math.max(maxMonth + 1, 1);
+
+            const datasets = years.map((y, i) => ({
+                label: y,
+                data: byYear[y].slice(0, monthCount),
+                borderColor: palette[i % palette.length],
+                backgroundColor: 'transparent',
+                tension: 0.25,
+                pointRadius: 3,
+                pointBackgroundColor: palette[i % palette.length]
+            }));
+
+            const hint = document.getElementById('yoyHint');
+            if (years.length < 2) {
+                hint.textContent = 'Once you have data spanning more than one year, this will overlay them for comparison. Right now only one year is shown.';
+            } else {
+                hint.textContent = 'Each line is a year. Compare the same month across years to see growth and seasonality.';
+            }
+
+            drawChart('yoyChart', {
+                type: 'line',
+                data: { labels: MONTHS.slice(0, monthCount), datasets },
+                options: {
+                    plugins: { legend: { labels: { color: '#8b96a1' } } },
+                    scales: moneyScales()
+                }
+            });
+        }
+
+        // Returns a sorted array of {key:'YYYY-MM', sum} for all months from first to last, filling gaps with 0
+        function contiguousMonths(invoices) {
+            const map = groupByMonth(invoices);
+            const keys = Object.keys(map).sort();
+            if (keys.length === 0) return [];
+            const [sy, sm] = keys[0].split('-').map(Number);
+            const [ey, em] = keys[keys.length - 1].split('-').map(Number);
+            const out = [];
+            let y = sy, m = sm;
+            while (y < ey || (y === ey && m <= em)) {
+                const k = y + '-' + String(m).padStart(2, '0');
+                out.push({ key: k, sum: map[k] ? map[k].sum : 0 });
+                m++; if (m > 12) { m = 1; y++; }
+            }
+            return out;
+        }
+
+        function renderRolling(invoices) {
+            const series = contiguousMonths(invoices);
+            if (series.length < 12) {
+                drawChart('rollingChart', {
+                    type: 'line',
+                    data: { labels: series.map(s => monthLabel(s.key)), datasets: [{
+                        data: series.map(s => s.sum), borderColor: '#4a90d9',
+                        backgroundColor: 'rgba(74,144,217,0.10)', fill: true, tension: 0.25, pointRadius: 2 }] },
+                    options: { plugins: { legend: { display: false }, tooltip: { callbacks: {
+                        label: i => 'Monthly: $' + Number(i.raw).toLocaleString() } } }, scales: moneyScales() }
+                });
+                return;
+            }
+            // Trailing 12-month sum at each point (from index 11 onward)
+            const rolling = [];
+            for (let i = 11; i < series.length; i++) {
+                let s = 0;
+                for (let j = i - 11; j <= i; j++) s += series[j].sum;
+                rolling.push({ key: series[i].key, val: s });
+            }
+            drawChart('rollingChart', {
+                type: 'line',
+                data: { labels: rolling.map(r => monthLabel(r.key)), datasets: [{
+                    data: rolling.map(r => r.val), borderColor: '#4a90d9',
+                    backgroundColor: 'rgba(74,144,217,0.12)', fill: true, tension: 0.25,
+                    pointBackgroundColor: '#4a90d9', pointRadius: 2 }] },
+                options: { plugins: { legend: { display: false }, tooltip: { callbacks: {
+                    label: i => 'Trailing 12mo: $' + Number(i.raw).toLocaleString() } } }, scales: moneyScales() }
+            });
+        }
+
+        function renderForecast(invoices) {
+            const series = contiguousMonths(invoices);
+            const hint = document.getElementById('forecastHint');
+            if (series.length < 12) {
+                hint.textContent = 'A seasonality-aware forecast needs at least a full year of data. Showing actuals only for now.';
+                drawChart('forecastChart', {
+                    type: 'line',
+                    data: { labels: series.map(s => monthLabel(s.key)), datasets: [{
+                        data: series.map(s => s.sum), borderColor: '#f5a623',
+                        backgroundColor: 'rgba(245,166,35,0.12)', fill: true, tension: 0.25, pointRadius: 2 }] },
+                    options: { plugins: { legend: { display: false } }, scales: moneyScales() }
+                });
+                return;
+            }
+            hint.textContent = 'Seasonality-aware projection for the next 3 months (shaded = likely range). An estimate, not a guarantee.';
+
+            const values = series.map(s => s.sum);
+            const n = values.length;
+
+            // 1) Underlying trend via linear regression on the monthly series
+            const xs = values.map((_, i) => i);
+            const meanX = xs.reduce((a, b) => a + b, 0) / n;
+            const meanY = values.reduce((a, b) => a + b, 0) / n;
+            let num = 0, den = 0;
+            xs.forEach((x, i) => { num += (x - meanX) * (values[i] - meanY); den += (x - meanX) ** 2; });
+            const slope = den ? num / den : 0;
+            const intercept = meanY - slope * meanX;
+            const trendAt = (i) => intercept + slope * i;
+
+            // 2) Seasonal factor per calendar month = avg(actual/trend) for that month
+            const seasonAccum = {}, seasonCount = {};
+            series.forEach((pt, i) => {
+                const month = Number(pt.key.split('-')[1]) - 1;
+                const t = trendAt(i);
+                if (t > 0) {
+                    const ratio = pt.sum / t;
+                    seasonAccum[month] = (seasonAccum[month] || 0) + ratio;
+                    seasonCount[month] = (seasonCount[month] || 0) + 1;
+                }
+            });
+            const seasonFactor = (month) => (seasonCount[month] ? seasonAccum[month] / seasonCount[month] : 1);
+
+            // 3) Residual spread (how far actuals stray from trend×season) → range band
+            let sqErr = 0, cnt = 0;
+            series.forEach((pt, i) => {
+                const month = Number(pt.key.split('-')[1]) - 1;
+                const pred = Math.max(0, trendAt(i) * seasonFactor(month));
+                sqErr += (pt.sum - pred) ** 2; cnt++;
+            });
+            const stdErr = cnt ? Math.sqrt(sqErr / cnt) : 0;
+
+            // 4) Project next 3 months
+            const HORIZON = 3;
+            let [ly, lm] = series[series.length - 1].key.split('-').map(Number);
+            const fLabels = [], fMid = [], fLow = [], fHigh = [];
+            for (let h = 1; h <= HORIZON; h++) {
+                lm++; if (lm > 12) { lm = 1; ly++; }
+                const idx = n - 1 + h;
+                const month = lm - 1;
+                const mid = Math.max(0, trendAt(idx) * seasonFactor(month));
+                fLabels.push(monthLabel(ly + '-' + String(lm).padStart(2, '0')));
+                fMid.push(mid);
+                fLow.push(Math.max(0, mid - stdErr));
+                fHigh.push(mid + stdErr);
+            }
+
+            const actualLabels = series.map(s => monthLabel(s.key));
+            const labels = actualLabels.concat(fLabels);
+            const pad = (arr) => series.map(() => null).concat(arr);
+            const actualSeries = values.concat(fLabels.map(() => null));
+            // bridge forecast to last actual
+            const bridge = (arr) => { const a = series.map(() => null); a[a.length - 1] = values[n - 1]; return a.concat(arr); };
+
+            drawChart('forecastChart', {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Actual', data: actualSeries, borderColor: '#f5a623',
+                          backgroundColor: 'rgba(245,166,35,0.10)', fill: true, tension: 0.25, pointRadius: 2 },
+                        { label: 'Forecast', data: bridge(fMid), borderColor: '#f5a623', borderDash: [6,5],
+                          tension: 0.25, pointRadius: 3, fill: false },
+                        { label: 'High', data: pad(fHigh), borderColor: 'rgba(245,166,35,0.25)',
+                          backgroundColor: 'rgba(245,166,35,0.10)', fill: '+1', tension: 0.25, pointRadius: 0 },
+                        { label: 'Low', data: pad(fLow), borderColor: 'rgba(245,166,35,0.25)',
+                          fill: false, tension: 0.25, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    plugins: { legend: { labels: { color: '#8b96a1', filter: (l) => l.text === 'Actual' || l.text === 'Forecast' } } },
+                    scales: moneyScales()
+                }
+            });
+        }
+
+        function renderHeatmap(invoices) {
+            const container = document.getElementById('heatmap');
+            const byYear = {};
+            invoices.forEach(d => {
+                const y = d.date.getFullYear(), m = d.date.getMonth();
+                if (!byYear[y]) byYear[y] = new Array(12).fill(0);
+                byYear[y][m] += d.amount;
+            });
+            const years = Object.keys(byYear).sort();
+            if (years.length === 0) { container.innerHTML = ''; return; }
+
+            let max = 0;
+            years.forEach(y => byYear[y].forEach(v => { if (v > max) max = v; }));
+
+            const cellColor = (v) => {
+                if (v <= 0) return 'rgba(255,255,255,0.03)';
+                const t = v / max; // 0..1
+                // amber scale: low alpha to solid accent
+                return `rgba(245,166,35,${(0.12 + t * 0.85).toFixed(2)})`;
+            };
+
+            let html = '<div class="hm-row"><div class="hm-corner"></div>' +
+                MONTHS.map(m => `<div class="hm-monthhead">${m}</div>`).join('') + '</div>';
+            years.forEach(y => {
+                html += '<div class="hm-row"><div class="hm-yearlabel">' + y + '</div>' +
+                    byYear[y].map(v => {
+                        const k = v >= 1000 ? '$' + Math.round(v / 1000) + 'k' : (v > 0 ? '$' + Math.round(v) : '');
+                        return `<div class="hm-cell" style="background:${cellColor(v)}" title="$${Math.round(v).toLocaleString()}">${k}</div>`;
+                    }).join('') + '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function renderYoYKpi(invoices) {
+            const el = document.getElementById('kpiYoY');
+            const sub = document.getElementById('kpiYoYSub');
+            el.className = 'value';
+
+            // Compare the two most recent COMPLETE years present in the data
+            const byYear = {};
+            invoices.forEach(d => { const y = d.date.getFullYear(); byYear[y] = (byYear[y] || 0) + d.amount; });
+            const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+            if (years.length < 2) { el.textContent = '—'; sub.textContent = 'need 2+ years'; return; }
+
+            const curr = years[years.length - 1];
+            const prev = years[years.length - 2];
+            const growth = byYear[prev] ? (byYear[curr] - byYear[prev]) / byYear[prev] * 100 : 0;
+            const sign = growth >= 0 ? '+' : '';
+            el.textContent = sign + growth.toFixed(0) + '%';
+            el.classList.add(growth >= 0 ? 'up' : 'down');
+            sub.textContent = `${prev} → ${curr}`;
         }
 
         function renderRevenueByMonth(invoices) {
@@ -450,12 +815,73 @@
 
         function renderTopClients(sortedCust) {
             const top = sortedCust.slice(0, 6);
+            const names = top.map(e => e[0]);
+            const values = top.map(e => e[1]);
+            // Y-axis shows rank (1, 2, 3...) instead of names; names get drawn on the bars
+            const ranks = top.map((_, i) => (i + 1).toString());
+
             drawChart('customerChart', {
                 type: 'bar',
-                data: { labels: top.map(e => e[0]),
-                    datasets: [{ data: top.map(e => e[1]), backgroundColor: '#4a90d9', borderRadius: 6 }] },
-                options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: moneyScales() }
+                data: {
+                    labels: ranks,
+                    datasets: [{ data: values, backgroundColor: '#4a90d9', borderRadius: 6 }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    layout: { padding: { right: 12 } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => names[items[0].dataIndex],
+                                label: (item) => '$' + Number(item.raw).toLocaleString()
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: '#8b96a1' },
+                            grid: { display: false },
+                            title: { display: true, text: 'Rank', color: '#8b96a1' }
+                        },
+                        x: {
+                            ticks: { color: '#8b96a1', callback: v => '$' + Number(v).toLocaleString() },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        }
+                    }
+                },
+                plugins: [clientNameLabels(names)]
             });
+        }
+
+        // Custom Chart.js plugin: draws each client's name inside/next to its bar
+        function clientNameLabels(names) {
+            return {
+                id: 'clientNameLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx } = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    ctx.save();
+                    ctx.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif';
+                    ctx.textBaseline = 'middle';
+                    meta.data.forEach((bar, i) => {
+                        const name = names[i];
+                        if (!name) return;
+                        const barWidth = bar.x - bar.base;
+                        // If the bar is wide enough, label sits inside (white); otherwise just past its end (grey)
+                        if (barWidth > ctx.measureText(name).width + 20) {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.textAlign = 'left';
+                            ctx.fillText(name, bar.base + 10, bar.y);
+                        } else {
+                            ctx.fillStyle = '#c8d0d8';
+                            ctx.textAlign = 'left';
+                            ctx.fillText(name, bar.x + 8, bar.y);
+                        }
+                    });
+                    ctx.restore();
+                }
+            };
         }
 
         function renderTypeSplit(inv, est) {
