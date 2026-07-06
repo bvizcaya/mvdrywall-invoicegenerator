@@ -73,7 +73,7 @@
             color: var(--accent); border-color: rgba(245,166,35,0.4); background: var(--accent-soft);
         }
 
-        .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
         .kpi { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px; padding: 20px; }
         .kpi .label {
             font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-dim); margin-bottom: 10px;
@@ -135,27 +135,34 @@
         <div id="content" style="display:none;">
             <div class="filters">
                 <div class="filter-field">
-                    <label for="fromDate">From</label>
-                    <input type="date" id="fromDate" onchange="manualDate()">
-                </div>
-                <div class="filter-field">
-                    <label for="toDate">To</label>
-                    <input type="date" id="toDate" onchange="manualDate()">
-                </div>
-                <div class="filter-field">
-                    <label for="custFilter">Customer</label>
-                    <select id="custFilter" onchange="applyFilters()">
-                        <option value="">All customers</option>
+                    <label for="yearFilter">Year</label>
+                    <select id="yearFilter" onchange="applyFilters()">
+                        <option value="">All years</option>
                     </select>
                 </div>
                 <div class="filter-field">
-                    <label>Quick range</label>
-                    <div class="quick-btns" id="quickBtns">
-                        <button onclick="quickRange(90, this)">90d</button>
-                        <button onclick="quickRange(180, this)">6mo</button>
-                        <button onclick="quickRange(365, this)">1yr</button>
-                        <button onclick="quickRange(0, this)" class="active">All</button>
-                    </div>
+                    <label for="monthFilter">Month</label>
+                    <select id="monthFilter" onchange="applyFilters()">
+                        <option value="">All months</option>
+                        <option value="0">January</option>
+                        <option value="1">February</option>
+                        <option value="2">March</option>
+                        <option value="3">April</option>
+                        <option value="4">May</option>
+                        <option value="5">June</option>
+                        <option value="6">July</option>
+                        <option value="7">August</option>
+                        <option value="8">September</option>
+                        <option value="9">October</option>
+                        <option value="10">November</option>
+                        <option value="11">December</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="custFilter">Client</label>
+                    <select id="custFilter" onchange="applyFilters()">
+                        <option value="">All clients</option>
+                    </select>
                 </div>
             </div>
 
@@ -174,11 +181,6 @@
                     <div class="label">Avg Invoice</div>
                     <div class="value" id="kpiAvg">$0</div>
                     <div class="sub" id="kpiAvgSub">—</div>
-                </div>
-                <div class="kpi">
-                    <div class="label">Top Customer Share</div>
-                    <div class="value" id="kpiConc">0%</div>
-                    <div class="sub" id="kpiConcSub">—</div>
                 </div>
             </div>
 
@@ -203,7 +205,7 @@
 
             <div class="panel-row">
                 <div class="panel">
-                    <h2>Top Customers by Revenue</h2>
+                    <h2>Top Clients by Revenue</h2>
                     <div class="hint">&nbsp;</div>
                     <div class="chart-box tall"><canvas id="customerChart"></canvas></div>
                 </div>
@@ -223,7 +225,7 @@
                             <tr>
                                 <th onclick="sortTable('date')">Date</th>
                                 <th onclick="sortTable('type')">Type</th>
-                                <th onclick="sortTable('customer')">Customer</th>
+                                <th onclick="sortTable('client')">Client</th>
                                 <th onclick="sortTable('address')">Job Site</th>
                                 <th onclick="sortTable('amount')" style="text-align:right;">Amount</th>
                             </tr>
@@ -272,7 +274,7 @@
                     const d = new Date(r.invoiceDate);
                     return {
                         type: String(r.documentType || '').toLowerCase(),
-                        customer: r.customerBusiness || r.customerName || 'Unknown',
+                        client: r.customerName || r.customerBusiness || 'Unknown',
                         address: r.address || '',
                         date: isNaN(d) ? null : d,
                         amount: parseFloat(r.amount) || 0
@@ -292,43 +294,26 @@
 
         function populateCustomerFilter() {
             const sel = document.getElementById('custFilter');
-            const names = [...new Set(allData.map(d => d.customer))].sort();
-            sel.innerHTML = '<option value="">All customers</option>' +
+            const names = [...new Set(allData.map(d => d.client))].sort();
+            sel.innerHTML = '<option value="">All clients</option>' +
                 names.map(n => `<option value="${n}">${n}</option>`).join('');
-        }
 
-        function manualDate() {
-            document.querySelectorAll('#quickBtns button').forEach(b => b.classList.remove('active'));
-            applyFilters();
-        }
-
-        function quickRange(days, btn) {
-            document.querySelectorAll('#quickBtns button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('toDate').value = '';
-            document.getElementById('fromDate').value = '';
-            if (days > 0) {
-                const to = new Date();
-                const from = new Date();
-                from.setDate(from.getDate() - days);
-                document.getElementById('fromDate').value = from.toISOString().split('T')[0];
-                document.getElementById('toDate').value = to.toISOString().split('T')[0];
-            }
-            applyFilters();
+            // Populate year dropdown from the data (newest first)
+            const yearSel = document.getElementById('yearFilter');
+            const years = [...new Set(allData.map(d => d.date.getFullYear()))].sort((a, b) => b - a);
+            yearSel.innerHTML = '<option value="">All years</option>' +
+                years.map(y => `<option value="${y}">${y}</option>`).join('');
         }
 
         function applyFilters() {
-            const fromVal = document.getElementById('fromDate').value;
-            const toVal = document.getElementById('toDate').value;
-            const from = fromVal ? new Date(fromVal) : null;
-            const to = toVal ? new Date(toVal) : null;
-            if (to) to.setHours(23, 59, 59); // include the whole end day
-            const cust = document.getElementById('custFilter').value;
+            const year = document.getElementById('yearFilter').value;
+            const month = document.getElementById('monthFilter').value;
+            const client = document.getElementById('custFilter').value;
 
             filtered = allData.filter(d => {
-                if (from && d.date < from) return false;
-                if (to && d.date > to) return false;
-                if (cust && d.customer !== cust) return false;
+                if (year !== '' && d.date.getFullYear() !== Number(year)) return false;
+                if (month !== '' && d.date.getMonth() !== Number(month)) return false;
+                if (client && d.client !== client) return false;
                 return true;
             });
 
@@ -348,17 +333,14 @@
             document.getElementById('kpiAvg').textContent = money(avg);
             document.getElementById('kpiAvgSub').textContent = invoices.length ? 'per invoice' : '—';
 
-            const byCust = {};
-            invoices.forEach(d => byCust[d.customer] = (byCust[d.customer] || 0) + d.amount);
-            const sortedCust = Object.entries(byCust).sort((a, b) => b[1] - a[1]);
-            const topShare = totalRevenue && sortedCust[0] ? sortedCust[0][1] / totalRevenue * 100 : 0;
-            document.getElementById('kpiConc').textContent = Math.round(topShare) + '%';
-            document.getElementById('kpiConcSub').textContent = sortedCust[0] ? sortedCust[0][0] : '—';
+            const byClient = {};
+            invoices.forEach(d => byClient[d.client] = (byClient[d.client] || 0) + d.amount);
+            const sortedClients = Object.entries(byClient).sort((a, b) => b[1] - a[1]);
 
             renderRevenueByMonth(invoices);
             renderAvgPrice(invoices);
             renderDistribution(invoices);
-            renderTopCustomers(sortedCust);
+            renderTopClients(sortedClients);
             renderTypeSplit(invoices.length, estimates.length);
             renderTable();
         }
@@ -466,7 +448,7 @@
             });
         }
 
-        function renderTopCustomers(sortedCust) {
+        function renderTopClients(sortedCust) {
             const top = sortedCust.slice(0, 6);
             drawChart('customerChart', {
                 type: 'bar',
@@ -504,7 +486,7 @@
                 <tr>
                     <td>${d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                     <td><span class="tag ${d.type}">${d.type}</span></td>
-                    <td>${d.customer}</td>
+                    <td>${d.client}</td>
                     <td style="color:var(--ink-dim);">${d.address}</td>
                     <td class="amt">${money2(d.amount)}</td>
                 </tr>
