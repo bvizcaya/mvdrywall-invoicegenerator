@@ -14,10 +14,10 @@
             --panel-line: #232a31;
             --ink: #f2f4f6;
             --ink-dim: #8b96a1;
-            --accent: #f5a623;      /* amber — drywall/construction warmth */
+            --accent: #f5a623;
             --accent-soft: rgba(245, 166, 35, 0.14);
             --blue: #4a90d9;
-            --grid: rgba(255,255,255,0.05);
+            --green: #4caf7d;
         }
 
         body {
@@ -38,95 +38,84 @@
             gap: 12px;
             border-bottom: 1px solid var(--panel-line);
             padding-bottom: 20px;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
-
-        h1 {
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
+        h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
         h1 .mark { color: var(--accent); }
-
         .subtitle { color: var(--ink-dim); font-size: 14px; margin-top: 4px; }
-
         .refresh {
-            background: var(--accent-soft);
-            color: var(--accent);
+            background: var(--accent-soft); color: var(--accent);
             border: 1px solid rgba(245,166,35,0.3);
-            padding: 9px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
+            padding: 9px 16px; border-radius: 8px;
+            font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;
         }
         .refresh:hover { background: rgba(245,166,35,0.22); }
 
-        /* KPI cards */
-        .kpis {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 28px;
+        .filters {
+            display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+            background: var(--panel); border: 1px solid var(--panel-line);
+            border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
         }
-        .kpi {
-            background: var(--panel);
-            border: 1px solid var(--panel-line);
-            border-radius: 12px;
-            padding: 20px;
+        .filter-field { display: flex; flex-direction: column; gap: 5px; }
+        .filter-field label {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-dim);
         }
+        .filter-field input, .filter-field select {
+            background: #0f1215; border: 1px solid var(--panel-line); color: var(--ink);
+            padding: 8px 10px; border-radius: 7px; font-size: 14px; font-family: inherit;
+        }
+        .quick-btns { display: flex; gap: 6px; }
+        .quick-btns button {
+            background: #0f1215; border: 1px solid var(--panel-line); color: var(--ink-dim);
+            padding: 8px 12px; border-radius: 7px; font-size: 12px; cursor: pointer; transition: all 0.15s;
+        }
+        .quick-btns button:hover, .quick-btns button.active {
+            color: var(--accent); border-color: rgba(245,166,35,0.4); background: var(--accent-soft);
+        }
+
+        .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .kpi { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px; padding: 20px; }
         .kpi .label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--ink-dim);
-            margin-bottom: 10px;
+            font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-dim); margin-bottom: 10px;
         }
         .kpi .value { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
         .kpi .value.accent { color: var(--accent); }
+        .kpi .sub { font-size: 12px; color: var(--ink-dim); margin-top: 6px; }
 
-        /* Chart panels */
         .panel {
-            background: var(--panel);
-            border: 1px solid var(--panel-line);
-            border-radius: 12px;
-            padding: 22px;
-            margin-bottom: 20px;
+            background: var(--panel); border: 1px solid var(--panel-line);
+            border-radius: 12px; padding: 22px; margin-bottom: 20px;
         }
-        .panel h2 {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 18px;
-            color: var(--ink);
-        }
-        .panel-row {
-            display: grid;
-            grid-template-columns: 1.6fr 1fr;
-            gap: 20px;
-        }
+        .panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+        .panel .hint { font-size: 12px; color: var(--ink-dim); margin-bottom: 16px; }
+        .panel-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .chart-box { position: relative; height: 300px; }
-        .chart-box.tall { height: 340px; }
+        .chart-box.tall { height: 330px; }
 
-        .state {
-            text-align: center;
-            color: var(--ink-dim);
-            padding: 60px 20px;
-            font-size: 14px;
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            text-align: left; color: var(--ink-dim); font-weight: 600;
+            text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em;
+            padding: 10px 12px; border-bottom: 1px solid var(--panel-line); cursor: pointer; user-select: none;
         }
+        th:hover { color: var(--ink); }
+        td { padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .tag { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .tag.invoice { background: var(--accent-soft); color: var(--accent); }
+        .tag.estimate { background: rgba(74,144,217,0.15); color: var(--blue); }
+        .amt { font-weight: 600; text-align: right; }
+
+        .state { text-align: center; color: var(--ink-dim); padding: 60px 20px; font-size: 14px; }
         .state.error { color: #e0736d; }
 
-        footer {
-            color: var(--ink-dim);
-            font-size: 12px;
-            text-align: center;
-            margin-top: 30px;
-        }
+        footer { color: var(--ink-dim); font-size: 12px; text-align: center; margin-top: 30px; }
         footer a { color: var(--accent); text-decoration: none; }
 
         @media (max-width: 820px) {
             .kpis { grid-template-columns: repeat(2, 1fr); }
             .panel-row { grid-template-columns: 1fr; }
+            .table-scroll { overflow-x: auto; }
         }
     </style>
 </head>
@@ -144,38 +133,103 @@
         <div id="errorState" class="state error" style="display:none;"></div>
 
         <div id="content" style="display:none;">
+            <div class="filters">
+                <div class="filter-field">
+                    <label for="fromDate">From</label>
+                    <input type="date" id="fromDate" onchange="manualDate()">
+                </div>
+                <div class="filter-field">
+                    <label for="toDate">To</label>
+                    <input type="date" id="toDate" onchange="manualDate()">
+                </div>
+                <div class="filter-field">
+                    <label for="custFilter">Customer</label>
+                    <select id="custFilter" onchange="applyFilters()">
+                        <option value="">All customers</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Quick range</label>
+                    <div class="quick-btns" id="quickBtns">
+                        <button onclick="quickRange(90, this)">90d</button>
+                        <button onclick="quickRange(180, this)">6mo</button>
+                        <button onclick="quickRange(365, this)">1yr</button>
+                        <button onclick="quickRange(0, this)" class="active">All</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="kpis">
                 <div class="kpi">
                     <div class="label">Total Invoiced</div>
                     <div class="value accent" id="kpiRevenue">$0</div>
+                    <div class="sub" id="kpiRevenueSub">—</div>
                 </div>
                 <div class="kpi">
                     <div class="label">Invoices</div>
                     <div class="value" id="kpiInvoices">0</div>
-                </div>
-                <div class="kpi">
-                    <div class="label">Estimates</div>
-                    <div class="value" id="kpiEstimates">0</div>
+                    <div class="sub" id="kpiEstSub">0 estimates</div>
                 </div>
                 <div class="kpi">
                     <div class="label">Avg Invoice</div>
                     <div class="value" id="kpiAvg">$0</div>
+                    <div class="sub" id="kpiAvgSub">—</div>
+                </div>
+                <div class="kpi">
+                    <div class="label">Top Customer Share</div>
+                    <div class="value" id="kpiConc">0%</div>
+                    <div class="sub" id="kpiConcSub">—</div>
                 </div>
             </div>
 
             <div class="panel">
-                <h2>Revenue by Month (Invoices)</h2>
+                <h2>Revenue by Month</h2>
+                <div class="hint">Actual invoiced revenue. Dashed segment is a simple trend projection — an estimate, not a guarantee.</div>
                 <div class="chart-box"><canvas id="revenueChart"></canvas></div>
             </div>
 
             <div class="panel-row">
                 <div class="panel">
+                    <h2>Average Invoice Price Over Time</h2>
+                    <div class="hint">Shows whether typical job size is trending up or down.</div>
+                    <div class="chart-box tall"><canvas id="avgPriceChart"></canvas></div>
+                </div>
+                <div class="panel">
+                    <h2>Invoice Size Distribution</h2>
+                    <div class="hint">How many jobs fall into each price band.</div>
+                    <div class="chart-box tall"><canvas id="distChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="panel-row">
+                <div class="panel">
                     <h2>Top Customers by Revenue</h2>
+                    <div class="hint">&nbsp;</div>
                     <div class="chart-box tall"><canvas id="customerChart"></canvas></div>
                 </div>
                 <div class="panel">
                     <h2>Invoices vs Estimates</h2>
+                    <div class="hint">&nbsp;</div>
                     <div class="chart-box tall"><canvas id="typeChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Recent Documents</h2>
+                <div class="hint">Click a column header to sort. Showing up to 25 most recent.</div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('date')">Date</th>
+                                <th onclick="sortTable('type')">Type</th>
+                                <th onclick="sortTable('customer')">Customer</th>
+                                <th onclick="sortTable('address')">Job Site</th>
+                                <th onclick="sortTable('amount')" style="text-align:right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -186,16 +240,19 @@
     </div>
 
     <script>
-        // Same Apps Script URL used by the invoice generator
         const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzzbctiNuqKW10e1Uzwdzv6R9SeApVNhE4silRcbL0VpSV-Za7dbJW9bJ2dYGijqgqRJw/exec';
 
+        let allData = [];
+        let filtered = [];
         let charts = {};
+        let sortState = { key: 'date', dir: -1 };
 
         const money = (n) => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        const money2 = (n) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         function show(id) {
             ['loadingState', 'errorState', 'content'].forEach(s => {
-                document.getElementById(s).style.display = (s === id) ? (s === 'content' ? 'block' : 'block') : 'none';
+                document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
             });
         }
 
@@ -205,144 +262,266 @@
                 const res = await fetch(SHEET_URL);
                 if (!res.ok) throw new Error('Request failed (' + res.status + ')');
                 const rows = await res.json();
-
                 if (!Array.isArray(rows) || rows.length === 0) {
-                    document.getElementById('errorState').textContent =
-                        'No invoices logged yet. Generate one, then refresh.';
+                    document.getElementById('errorState').textContent = 'No documents logged yet. Generate one, then refresh.';
                     show('errorState');
                     return;
                 }
 
-                render(rows);
+                allData = rows.map(r => {
+                    const d = new Date(r.invoiceDate);
+                    return {
+                        type: String(r.documentType || '').toLowerCase(),
+                        customer: r.customerBusiness || r.customerName || 'Unknown',
+                        address: r.address || '',
+                        date: isNaN(d) ? null : d,
+                        amount: parseFloat(r.amount) || 0
+                    };
+                }).filter(d => d.date);
+
+                populateCustomerFilter();
+                applyFilters();
                 show('content');
             } catch (err) {
                 document.getElementById('errorState').textContent =
-                    'Could not load data: ' + err.message + '. Check that the Apps Script is deployed with a doGet function.';
+                    'Could not load data: ' + err.message + '. Make sure the Apps Script has a doGet function and was re-deployed.';
                 show('errorState');
                 console.error(err);
             }
         }
 
-        function render(rows) {
-            // Normalize
-            const data = rows.map(r => ({
-                type: String(r.documentType || '').toLowerCase(),
-                customer: r.customerBusiness || r.customerName || 'Unknown',
-                date: r.invoiceDate || '',
-                amount: parseFloat(r.amount) || 0
-            }));
-
-            const invoices = data.filter(d => d.type === 'invoice');
-            const estimates = data.filter(d => d.type === 'estimate');
-            const totalRevenue = invoices.reduce((s, d) => s + d.amount, 0);
-
-            // KPIs
-            document.getElementById('kpiRevenue').textContent = money(totalRevenue);
-            document.getElementById('kpiInvoices').textContent = invoices.length;
-            document.getElementById('kpiEstimates').textContent = estimates.length;
-            document.getElementById('kpiAvg').textContent =
-                money(invoices.length ? totalRevenue / invoices.length : 0);
-
-            renderRevenueByMonth(invoices);
-            renderTopCustomers(invoices);
-            renderTypeSplit(invoices.length, estimates.length);
+        function populateCustomerFilter() {
+            const sel = document.getElementById('custFilter');
+            const names = [...new Set(allData.map(d => d.customer))].sort();
+            sel.innerHTML = '<option value="">All customers</option>' +
+                names.map(n => `<option value="${n}">${n}</option>`).join('');
         }
 
-        function monthKey(dateStr) {
-            const d = new Date(dateStr);
-            if (isNaN(d)) return null;
-            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        function manualDate() {
+            document.querySelectorAll('#quickBtns button').forEach(b => b.classList.remove('active'));
+            applyFilters();
+        }
+
+        function quickRange(days, btn) {
+            document.querySelectorAll('#quickBtns button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('toDate').value = '';
+            document.getElementById('fromDate').value = '';
+            if (days > 0) {
+                const to = new Date();
+                const from = new Date();
+                from.setDate(from.getDate() - days);
+                document.getElementById('fromDate').value = from.toISOString().split('T')[0];
+                document.getElementById('toDate').value = to.toISOString().split('T')[0];
+            }
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const fromVal = document.getElementById('fromDate').value;
+            const toVal = document.getElementById('toDate').value;
+            const from = fromVal ? new Date(fromVal) : null;
+            const to = toVal ? new Date(toVal) : null;
+            if (to) to.setHours(23, 59, 59); // include the whole end day
+            const cust = document.getElementById('custFilter').value;
+
+            filtered = allData.filter(d => {
+                if (from && d.date < from) return false;
+                if (to && d.date > to) return false;
+                if (cust && d.customer !== cust) return false;
+                return true;
+            });
+
+            renderAll();
+        }
+
+        function renderAll() {
+            const invoices = filtered.filter(d => d.type === 'invoice');
+            const estimates = filtered.filter(d => d.type === 'estimate');
+            const totalRevenue = invoices.reduce((s, d) => s + d.amount, 0);
+            const avg = invoices.length ? totalRevenue / invoices.length : 0;
+
+            document.getElementById('kpiRevenue').textContent = money(totalRevenue);
+            document.getElementById('kpiRevenueSub').textContent = invoices.length + ' invoices';
+            document.getElementById('kpiInvoices').textContent = invoices.length;
+            document.getElementById('kpiEstSub').textContent = estimates.length + ' estimates';
+            document.getElementById('kpiAvg').textContent = money(avg);
+            document.getElementById('kpiAvgSub').textContent = invoices.length ? 'per invoice' : '—';
+
+            const byCust = {};
+            invoices.forEach(d => byCust[d.customer] = (byCust[d.customer] || 0) + d.amount);
+            const sortedCust = Object.entries(byCust).sort((a, b) => b[1] - a[1]);
+            const topShare = totalRevenue && sortedCust[0] ? sortedCust[0][1] / totalRevenue * 100 : 0;
+            document.getElementById('kpiConc').textContent = Math.round(topShare) + '%';
+            document.getElementById('kpiConcSub').textContent = sortedCust[0] ? sortedCust[0][0] : '—';
+
+            renderRevenueByMonth(invoices);
+            renderAvgPrice(invoices);
+            renderDistribution(invoices);
+            renderTopCustomers(sortedCust);
+            renderTypeSplit(invoices.length, estimates.length);
+            renderTable();
+        }
+
+        function monthKey(date) {
+            return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+        }
+        function monthLabel(key) {
+            const [y, m] = key.split('-');
+            return new Date(y, m - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        }
+        function groupByMonth(invoices) {
+            const map = {};
+            invoices.forEach(d => {
+                const k = monthKey(d.date);
+                if (!map[k]) map[k] = { sum: 0, count: 0 };
+                map[k].sum += d.amount;
+                map[k].count += 1;
+            });
+            return map;
         }
 
         function renderRevenueByMonth(invoices) {
-            const byMonth = {};
-            invoices.forEach(d => {
-                const k = monthKey(d.date);
-                if (!k) return;
-                byMonth[k] = (byMonth[k] || 0) + d.amount;
-            });
-            const keys = Object.keys(byMonth).sort();
-            const labels = keys.map(k => {
-                const [y, m] = k.split('-');
-                return new Date(y, m - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            });
+            const map = groupByMonth(invoices);
+            const keys = Object.keys(map).sort();
+            const actual = keys.map(k => map[k].sum);
 
-            drawChart('revenueChart', 'line', {
-                labels,
-                datasets: [{
-                    data: keys.map(k => byMonth[k]),
-                    borderColor: '#f5a623',
-                    backgroundColor: 'rgba(245,166,35,0.12)',
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#f5a623',
-                    pointRadius: 4
-                }]
-            }, moneyAxisOptions());
+            let projLabels = [], projData = [];
+            if (keys.length >= 3) {
+                const n = actual.length;
+                const xs = actual.map((_, i) => i);
+                const meanX = xs.reduce((a, b) => a + b, 0) / n;
+                const meanY = actual.reduce((a, b) => a + b, 0) / n;
+                let num = 0, den = 0;
+                xs.forEach((x, i) => { num += (x - meanX) * (actual[i] - meanY); den += (x - meanX) ** 2; });
+                const slope = den ? num / den : 0;
+                const intercept = meanY - slope * meanX;
+                let [ly, lm] = keys[keys.length - 1].split('-').map(Number);
+                for (let i = 1; i <= 2; i++) {
+                    lm++; if (lm > 12) { lm = 1; ly++; }
+                    projLabels.push(monthLabel(ly + '-' + String(lm).padStart(2, '0')));
+                    projData.push(Math.max(0, intercept + slope * (n - 1 + i)));
+                }
+            }
+
+            const labels = keys.map(monthLabel).concat(projLabels);
+            const actualSeries = actual.concat(projLabels.map(() => null));
+            const projSeries = keys.map(() => null);
+            if (projData.length) {
+                projSeries[projSeries.length - 1] = actual[actual.length - 1];
+                projData.forEach(v => projSeries.push(v));
+            }
+
+            drawChart('revenueChart', {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Actual', data: actualSeries, borderColor: '#f5a623',
+                          backgroundColor: 'rgba(245,166,35,0.12)', fill: true, tension: 0.3,
+                          pointBackgroundColor: '#f5a623', pointRadius: 4 },
+                        { label: 'Projected (estimate)', data: projSeries, borderColor: '#f5a623',
+                          borderDash: [6, 5], pointRadius: 3, tension: 0.3, fill: false }
+                    ]
+                },
+                options: { plugins: { legend: { labels: { color: '#8b96a1' } } }, scales: moneyScales() }
+            });
         }
 
-        function renderTopCustomers(invoices) {
-            const byCust = {};
-            invoices.forEach(d => { byCust[d.customer] = (byCust[d.customer] || 0) + d.amount; });
-            const sorted = Object.entries(byCust).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        function renderAvgPrice(invoices) {
+            const map = groupByMonth(invoices);
+            const keys = Object.keys(map).sort();
+            drawChart('avgPriceChart', {
+                type: 'line',
+                data: {
+                    labels: keys.map(monthLabel),
+                    datasets: [{ data: keys.map(k => map[k].sum / map[k].count),
+                        borderColor: '#4caf7d', backgroundColor: 'rgba(76,175,125,0.12)',
+                        fill: true, tension: 0.3, pointBackgroundColor: '#4caf7d', pointRadius: 4 }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: moneyScales() }
+            });
+        }
 
-            drawChart('customerChart', 'bar', {
-                labels: sorted.map(e => e[0]),
-                datasets: [{
-                    data: sorted.map(e => e[1]),
-                    backgroundColor: '#4a90d9',
-                    borderRadius: 6
-                }]
-            }, {
-                indexAxis: 'y',
-                ...moneyAxisOptions(),
-                plugins: { legend: { display: false } }
+        function renderDistribution(invoices) {
+            const bands = [
+                { label: '$0–5k', min: 0, max: 5000 },
+                { label: '$5–15k', min: 5000, max: 15000 },
+                { label: '$15–30k', min: 15000, max: 30000 },
+                { label: '$30–50k', min: 30000, max: 50000 },
+                { label: '$50k+', min: 50000, max: Infinity }
+            ];
+            const counts = bands.map(b => invoices.filter(d => d.amount >= b.min && d.amount < b.max).length);
+            drawChart('distChart', {
+                type: 'bar',
+                data: { labels: bands.map(b => b.label),
+                    datasets: [{ data: counts, backgroundColor: '#f5a623', borderRadius: 6 }] },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { color: '#8b96a1', precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { ticks: { color: '#8b96a1' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderTopCustomers(sortedCust) {
+            const top = sortedCust.slice(0, 6);
+            drawChart('customerChart', {
+                type: 'bar',
+                data: { labels: top.map(e => e[0]),
+                    datasets: [{ data: top.map(e => e[1]), backgroundColor: '#4a90d9', borderRadius: 6 }] },
+                options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: moneyScales() }
             });
         }
 
         function renderTypeSplit(inv, est) {
-            drawChart('typeChart', 'doughnut', {
-                labels: ['Invoices', 'Estimates'],
-                datasets: [{
-                    data: [inv, est],
-                    backgroundColor: ['#f5a623', '#4a90d9'],
-                    borderColor: '#161a1f',
-                    borderWidth: 3
-                }]
-            }, {
-                plugins: {
-                    legend: { labels: { color: '#8b96a1' }, position: 'bottom' }
-                }
+            drawChart('typeChart', {
+                type: 'doughnut',
+                data: { labels: ['Invoices', 'Estimates'],
+                    datasets: [{ data: [inv, est], backgroundColor: ['#f5a623', '#4a90d9'],
+                        borderColor: '#161a1f', borderWidth: 3 }] },
+                options: { plugins: { legend: { labels: { color: '#8b96a1' }, position: 'bottom' } } }
             });
         }
 
-        function moneyAxisOptions() {
+        function sortTable(key) {
+            if (sortState.key === key) sortState.dir *= -1;
+            else { sortState.key = key; sortState.dir = (key === 'amount' || key === 'date') ? -1 : 1; }
+            renderTable();
+        }
+
+        function renderTable() {
+            const rows = [...filtered].sort((a, b) => {
+                let av = a[sortState.key], bv = b[sortState.key];
+                if (av < bv) return -1 * sortState.dir;
+                if (av > bv) return 1 * sortState.dir;
+                return 0;
+            }).slice(0, 25);
+
+            document.getElementById('tableBody').innerHTML = rows.map(d => `
+                <tr>
+                    <td>${d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                    <td><span class="tag ${d.type}">${d.type}</span></td>
+                    <td>${d.customer}</td>
+                    <td style="color:var(--ink-dim);">${d.address}</td>
+                    <td class="amt">${money2(d.amount)}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--ink-dim);padding:30px;">No documents match these filters.</td></tr>';
+        }
+
+        function moneyScales() {
             return {
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: {
-                        ticks: { color: '#8b96a1', callback: v => '$' + Number(v).toLocaleString() },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    x: {
-                        ticks: { color: '#8b96a1' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    }
-                }
+                y: { ticks: { color: '#8b96a1', callback: v => '$' + Number(v).toLocaleString() }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#8b96a1' }, grid: { color: 'rgba(255,255,255,0.05)' } }
             };
         }
 
-        function drawChart(id, type, data, options) {
+        function drawChart(id, config) {
             if (charts[id]) charts[id].destroy();
-            charts[id] = new Chart(document.getElementById(id), {
-                type,
-                data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    ...options
-                }
-            });
+            config.options = { responsive: true, maintainAspectRatio: false, ...config.options };
+            charts[id] = new Chart(document.getElementById(id), config);
         }
 
         loadData();
