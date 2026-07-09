@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MV Drywall Invoice & Estimate Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="invoice-pdf.js"></script>
     <style>
         * {
             margin: 0;
@@ -147,6 +148,36 @@
             box-shadow: none;
         }
 
+        .nav-links {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .nav-links a {
+            color: #aaaaaa;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 14px;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover {
+            color: #ffffff;
+            border-color: #555555;
+            background: #222222;
+        }
+
+        .convert-banner {
+            background: rgba(74, 144, 217, 0.12);
+            border: 1px solid rgba(74, 144, 217, 0.35);
+            color: #8fc0f0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 22px;
+            font-size: 14px;
+        }
+
         .success-message {
             background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
             color: white;
@@ -174,6 +205,15 @@
     <div class="container">
         <h1>MV Drywall Invoice & Estimate Generator</h1>
         <p class="subtitle">Create professional invoices and estimates quickly and easily</p>
+
+        <div class="nav-links">
+            <a href="history.html">Invoice History</a>
+            <a href="dashboard.html">Analytics</a>
+        </div>
+
+        <div class="convert-banner" id="convertBanner" style="display:none;">
+            Converting an estimate to an invoice — review the details, then generate.
+        </div>
 
         <form id="invoiceForm">
             <div class="form-group">
@@ -212,6 +252,14 @@
                 <input type="text" id="streetAddress" placeholder="e.g., 123 Main Street" required>
                 <div class="location-info" id="locationInfo">
                     Enter street address to auto-detect city, state, and ZIP
+                </div>
+            </div>
+
+            <div class="form-group" id="invoiceNumberGroup">
+                <label for="invoiceNumber">Invoice Number</label>
+                <input type="text" id="invoiceNumber" placeholder="Loading…">
+                <div class="location-info" id="invoiceNumberHint">
+                    Auto-assigned from your records. Edit only if you need to.
                 </div>
             </div>
 
@@ -265,7 +313,8 @@
                         invoiceDate: data.invoiceDate || '',
                         jobDate: data.jobDate || '',
                         amount: data.amount || '',
-                        comments: data.comments || ''
+                        comments: data.comments || '',
+                        invoiceNumber: data.invoiceNumber || ''
                     })
                 }).catch(err => console.error('Sheet logging failed:', err));
             } catch (err) {
@@ -273,7 +322,48 @@
             }
         }
 
-        // Customer database
+        // ---- Sequential invoice numbering ----
+        // Historical records have no number. Numbering starts from this seed and
+        // continues from the highest number already present in the sheet.
+        const INVOICE_NUMBER_SEED = 1001;
+        let nextInvoiceNumber = null;
+
+        function updateInvoiceNumberField() {
+            const field = document.getElementById('invoiceNumber');
+            const isInvoice = document.getElementById('documentType').value === 'invoice';
+            const group = document.getElementById('invoiceNumberGroup');
+
+            // Estimates aren't numbered
+            group.style.display = isInvoice ? 'block' : 'none';
+            if (!isInvoice) return;
+
+            field.value = nextInvoiceNumber !== null ? String(nextInvoiceNumber) : '';
+            if (nextInvoiceNumber === null) field.placeholder = 'Loading…';
+        }
+
+        async function loadNextInvoiceNumber() {
+            const hint = document.getElementById('invoiceNumberHint');
+            try {
+                const res = await fetch(SHEET_LOG_URL);
+                if (!res.ok) throw new Error('status ' + res.status);
+                const rows = await res.json();
+
+                let max = INVOICE_NUMBER_SEED - 1;
+                (Array.isArray(rows) ? rows : []).forEach(r => {
+                    const n = parseInt(r.invoiceNumber, 10);
+                    if (!isNaN(n) && n > max) max = n;
+                });
+                nextInvoiceNumber = max + 1;
+                hint.textContent = 'Auto-assigned from your records. Edit only if you need to.';
+            } catch (err) {
+                // Fall back to the seed rather than blocking the invoice
+                nextInvoiceNumber = INVOICE_NUMBER_SEED;
+                hint.textContent = 'Could not reach your records — using the starting number. Double-check before sending.';
+                console.error('Invoice number lookup failed:', err);
+            }
+            updateInvoiceNumberField();
+        }
+
         const customers = {
             'new-york-homes': {
                 name: 'New York Homes',
@@ -387,11 +477,50 @@
         }
 
         // Get current location on page load
+        // Prefills the form from URL params — used when converting an estimate to an invoice
+        function prefillFromUrl() {
+            const p = new URLSearchParams(window.location.search);
+            if (![...p.keys()].length) return;
+
+            const set = (id, val) => { if (val !== null && val !== '') document.getElementById(id).value = val; };
+
+            // Always convert to an invoice
+            set('documentType', 'invoice');
+            set('streetAddress', p.get('address'));
+            set('jobDate', p.get('jobDate'));
+            set('amount', p.get('amount'));
+            set('comments', p.get('comments'));
+
+            // Match the client to a preset if we can; otherwise fall back to custom
+            const clientName = p.get('client');
+            if (clientName) {
+                const sel = document.getElementById('customer');
+                const match = Object.keys(customers).find(k => customers[k].name === clientName);
+                if (match) {
+                    sel.value = match;
+                } else {
+                    sel.value = 'custom';
+                    document.getElementById('customCustomerGroup').style.display = 'block';
+                    document.getElementById('customCustomerName').value = clientName;
+                }
+            }
+
+            const banner = document.getElementById('convertBanner');
+            if (banner) banner.style.display = 'block';
+
+            // Reflect the invoice-type change in the button + number field
+            const btn = document.getElementById('submitButton');
+            if (btn) btn.textContent = 'Generate & Download Invoice PDF';
+        }
+
         window.addEventListener('load', () => {
             console.log('🚀 Page loaded - Setting up event listeners');
             
             getCurrentLocation();
             setTodayDate();
+            loadNextInvoiceNumber();   // fetch the next sequential number
+            prefillFromUrl();          // estimate → invoice conversion
+            updateInvoiceNumberField();
             
             console.log('Performing initial form validity check...');
             checkFormValidity(); // Initial check
@@ -444,6 +573,7 @@
                 const submitButton = document.getElementById('submitButton');
                 const displayType = docType.charAt(0).toUpperCase() + docType.slice(1);
                 submitButton.textContent = `Generate & Download ${displayType} PDF`;
+                updateInvoiceNumberField(); // estimates have no number
             });
             
             // Form submit handler
@@ -498,9 +628,14 @@
                 const jobDate = document.getElementById('jobDate').value || 'N/A';
                 const amount = parseFloat(document.getElementById('amount').value);
                 const comments = document.getElementById('comments').value || 'N/A';
+                // Estimates aren't numbered
+                const invoiceNumber = documentType === 'invoice'
+                    ? (document.getElementById('invoiceNumber').value || '').trim()
+                    : '';
                 
                 generatePDF({
                     documentType,
+                    invoiceNumber,
                     customer: customerInfo,
                     address: fullAddress,
                     invoiceDate,
@@ -511,142 +646,27 @@
             });
         });
 
+
+        // Downloads the PDF, logs to the sheet, and updates the UI
         function generatePDF(data) {
-            const { jsPDF } = window.jspdf;
-            // Points + US Letter, matching the reference invoice exactly
-            const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-
-            // Column x-positions (points), taken from the reference layout
-            const L = 47;          // left text margin
-            const X_JOB = 281;     // JOB DATE column
-            const X_AMT = 373;     // AMOUNT column
-            const RULE_L = 45;     // horizontal rule left
-            const RULE_R = 459;    // horizontal rule right
-
-            // Reference shows whole dollars, e.g. $23,350
-            const formatMoney = (n) => '$' + Number(n).toLocaleString('en-US', {
-                maximumFractionDigits: 0
-            });
-
-            // --- Header ---
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.text(data.documentType.toUpperCase(), L, 66);
-
-            // Company name: reference uses Georgia (regular weight). jsPDF ships Times
-            // as its built-in serif; swap to 'georgia' here if you embed the real font.
-            doc.setFont('times', 'normal');
-            doc.setFontSize(29);
-            doc.text('MV Drywall Inc.', L, 110);
-
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            doc.text('2307 Virginia St', L, 135);
-            doc.text('Bellevue, NE 68147', L, 147);
-            doc.text('(402)-981-9930', L, 165);
-
-            const formattedDate = new Date(data.invoiceDate).toLocaleDateString('en-US', {
-                month: '2-digit', day: '2-digit', year: '2-digit'
-            });
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.text('DATE: ' + formattedDate, L, 189);
-
-            // BILL TO — serif in the reference
-            doc.setFont('times', 'normal');
-            doc.setFontSize(15);
-            doc.text('BILL TO', L, 218);
-
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            const billToName = data.customer.name || data.customer.business || '';
-            doc.text(billToName, L, 238);
-
-            let yBill = 256;
-            if (data.customer.address) {
-                const custLines = doc.splitTextToSize(data.customer.address, 232);
-                custLines.forEach((ln, i) => doc.text(ln, L, yBill + i * 12));
-            }
-
-            // --- Table ---
-            const Y_TOP_RULE = 290;    // rule above the header row
-            const Y_HEAD = 314;        // header text baseline
-            const Y_MID_RULE = 320;    // thick (2pt) rule under the header row
-            const Y_ROW = 345;         // data row baseline
-            const Y_TOTAL = 376;       // TOTAL row baseline
-            const Y_BOT_RULE = 380;    // rule under TOTAL
-
-            // Rule above headers
-            doc.setDrawColor(0, 0, 0);
-            doc.setLineWidth(1);
-            doc.line(RULE_L, Y_TOP_RULE, RULE_R, Y_TOP_RULE);
-
-            // Header text
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.text('HOUSE ADDRESS', L, Y_HEAD);
-            doc.text('JOB DATE', X_JOB, Y_HEAD);
-            doc.text('AMOUNT', X_AMT, Y_HEAD);
-
-            // Shaded cells (drawn before text so the text sits on top)
-            doc.setFillColor(217, 217, 217);                  // grey ~0.85
-            doc.rect(RULE_L, Y_MID_RULE, 234, 30, 'F');       // house address cell
-            doc.rect(371, Y_MID_RULE, 88, 30, 'F');           // amount cell
-            doc.setFillColor(251, 252, 251);                  // near-white job date column
-            doc.rect(279, Y_MID_RULE, 92, 30, 'F');
-            doc.rect(279, 350, 92, 30, 'F');
-
-            // Rule under headers: 2pt across the full width, so all three cells
-            // (house address, job date, amount) share the same thick top edge
-            doc.setLineWidth(2);
-            doc.line(RULE_L - 1, Y_MID_RULE, RULE_R, Y_MID_RULE);
-
-            // Data row
-            doc.setTextColor(0, 0, 0);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            const addrLines = doc.splitTextToSize(data.address, 226);
-            doc.text(addrLines, L, Y_ROW);
-            doc.text(String(data.jobDate), X_JOB, Y_ROW);
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(formatMoney(data.amount), X_AMT, Y_ROW);
-
-            // TOTAL row
-            doc.setFont('helvetica', 'normal');
-            doc.text('TOTAL', X_JOB, Y_TOTAL);
-            doc.setFont('helvetica', 'bold');
-            doc.text(formatMoney(data.amount), X_AMT, Y_TOTAL);
-
-            // Rule under TOTAL
-            doc.setLineWidth(1);
-            doc.line(RULE_L, Y_BOT_RULE, RULE_R, Y_BOT_RULE);
-
-            // Comments: label bold, value regular (bold too when left as N/A)
-            const commentsIsDefault = String(data.comments).trim().toUpperCase() === 'N/A';
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.text('Comments:', L, 406);
-            const labelW = doc.getTextWidth('Comments: ');
-            doc.setFont('helvetica', commentsIsDefault ? 'bold' : 'normal');
-            doc.text(String(data.comments), L + labelW, 406);
-
-            // Filename
-            const dateStr = formattedDate.replace(/\//g, '-');
-            const clientName = (data.customer.name || 'Client').replace(/\s+/g, '_');
-            const docTypeFile = data.documentType.charAt(0).toUpperCase() + data.documentType.slice(1);
-            const fileName = `MV_Drywall_${docTypeFile}_${clientName}_${dateStr}.pdf`;
-
-            doc.save(fileName);
+            downloadInvoicePDF(data);
 
             // Log to the Google Sheet (background, non-blocking)
             logToSheet(data);
 
             const successMsg = document.getElementById('successMessage');
-            const docTypeForMessage = data.documentType.charAt(0).toUpperCase() + data.documentType.slice(1);
-            successMsg.textContent = `${docTypeForMessage} PDF generated and downloaded successfully!`;
+            const t = data.documentType;
+            const docTypeForMessage = t.charAt(0).toUpperCase() + t.slice(1);
+            const numPart = data.invoiceNumber ? ` #${data.invoiceNumber}` : '';
+            successMsg.textContent = `${docTypeForMessage}${numPart} PDF generated and downloaded successfully!`;
             successMsg.style.display = 'block';
             setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+
+            // Advance the number so a second invoice in the same session doesn't collide
+            if (data.documentType === 'invoice') {
+                nextInvoiceNumber = Number(data.invoiceNumber) + 1;
+                updateInvoiceNumberField();
+            }
         }
     </script>
 </body>
