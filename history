@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MV Drywall — Invoice History</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="invoice-pdf.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0d0f12;
+            --panel: #161a1f;
+            --line: #232a31;
+            --ink: #f2f4f6;
+            --dim: #8b96a1;
+            --accent: #f5a623;
+            --accent-soft: rgba(245,166,35,0.14);
+            --blue: #4a90d9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: var(--bg); color: var(--ink);
+            min-height: 100vh; padding: 32px 24px 60px;
+        }
+        .wrap { max-width: 1100px; margin: 0 auto; }
+
+        header {
+            display: flex; align-items: baseline; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 20px; margin-bottom: 22px;
+        }
+        h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+        h1 .mark { color: var(--accent); }
+        .subtitle { color: var(--dim); font-size: 14px; margin-top: 4px; }
+
+        .nav-links { display: flex; gap: 12px; }
+        .nav-links a {
+            color: var(--dim); text-decoration: none; font-size: 13px;
+            padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; transition: all 0.2s;
+        }
+        .nav-links a:hover { color: var(--ink); border-color: #444; background: #1e2329; }
+
+        .toolbar {
+            display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+            background: var(--panel); border: 1px solid var(--line);
+            border-radius: 12px; padding: 16px 20px; margin-bottom: 22px;
+        }
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field label {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim);
+        }
+        .field input, .field select {
+            background: #0f1215; border: 1px solid var(--line); color: var(--ink);
+            padding: 9px 11px; border-radius: 7px; font-size: 14px; font-family: inherit;
+        }
+        .field input { min-width: 240px; }
+
+        .btn {
+            padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            cursor: pointer; border: 1px solid transparent; transition: all 0.2s; font-family: inherit;
+        }
+        .btn-accent {
+            background: var(--accent-soft); color: var(--accent); border-color: rgba(245,166,35,0.3);
+        }
+        .btn-accent:hover { background: rgba(245,166,35,0.24); }
+        .btn-ghost { background: #0f1215; color: var(--dim); border-color: var(--line); }
+        .btn-ghost:hover { color: var(--ink); border-color: #444; }
+
+        .export-note { color: var(--dim); font-size: 12px; margin-top: 8px; }
+
+        .panel {
+            background: var(--panel); border: 1px solid var(--line);
+            border-radius: 12px; padding: 20px; margin-bottom: 20px;
+        }
+        .panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+        .panel .hint { font-size: 12px; color: var(--dim); margin-bottom: 16px; }
+
+        .table-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            text-align: left; color: var(--dim); font-weight: 600;
+            text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em;
+            padding: 10px 12px; border-bottom: 1px solid var(--line);
+            cursor: pointer; user-select: none; white-space: nowrap;
+        }
+        th:hover { color: var(--ink); }
+        td { padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .tag { padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .tag.invoice { background: var(--accent-soft); color: var(--accent); }
+        .tag.estimate { background: rgba(74,144,217,0.15); color: var(--blue); }
+
+        .num { color: var(--dim); font-variant-numeric: tabular-nums; }
+        .amt { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .actions { display: flex; gap: 6px; justify-content: flex-end; }
+        .mini {
+            padding: 6px 10px; font-size: 12px; border-radius: 6px; cursor: pointer;
+            border: 1px solid var(--line); background: #0f1215; color: var(--dim);
+            transition: all 0.15s; font-family: inherit; white-space: nowrap;
+        }
+        .mini:hover { color: var(--ink); border-color: #555; }
+        .mini.convert { color: var(--blue); border-color: rgba(74,144,217,0.3); }
+        .mini.convert:hover { background: rgba(74,144,217,0.12); }
+
+        .state { text-align: center; color: var(--dim); padding: 60px 20px; font-size: 14px; }
+        .state.error { color: #e0736d; }
+        .count { color: var(--dim); font-size: 12px; margin-bottom: 12px; }
+
+        footer { color: var(--dim); font-size: 12px; text-align: center; margin-top: 30px; }
+        footer a { color: var(--accent); text-decoration: none; }
+
+        @media (max-width: 760px) {
+            .field input { min-width: 100%; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div>
+                <h1>Invoice <span class="mark">History</span></h1>
+                <div class="subtitle">Search, re-download, and export past documents</div>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">New Invoice</a>
+                <a href="dashboard.html">Analytics</a>
+            </div>
+        </header>
+
+        <div id="loadingState" class="state">Loading your records…</div>
+        <div id="errorState" class="state error" style="display:none;"></div>
+
+        <div id="content" style="display:none;">
+            <div class="toolbar">
+                <div class="field">
+                    <label for="search">Search</label>
+                    <input type="text" id="search" placeholder="Client, address, or invoice number…" oninput="applyFilters()">
+                </div>
+                <div class="field">
+                    <label for="typeFilter">Type</label>
+                    <select id="typeFilter" onchange="applyFilters()">
+                        <option value="">All</option>
+                        <option value="invoice">Invoices</option>
+                        <option value="estimate">Estimates</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="yearFilter">Year</label>
+                    <select id="yearFilter" onchange="applyFilters()">
+                        <option value="">All years</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="exportYear">Tax export</label>
+                    <select id="exportYear">
+                        <option value="">Select year…</option>
+                    </select>
+                </div>
+                <button class="btn btn-accent" onclick="exportTaxCsv()">Download CSV</button>
+            </div>
+
+            <div class="panel">
+                <h2>Documents</h2>
+                <div class="hint">Click a column to sort. Re-download rebuilds the original PDF from your records.</div>
+                <div class="count" id="resultCount"></div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th onclick="sortBy('number')">No.</th>
+                                <th onclick="sortBy('date')">Date</th>
+                                <th onclick="sortBy('type')">Type</th>
+                                <th onclick="sortBy('client')">Client</th>
+                                <th onclick="sortBy('address')">Job Site</th>
+                                <th onclick="sortBy('amount')" style="text-align:right;">Amount</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Reads live from your Google Sheet · <a href="index.html">← Back to invoice generator</a>
+        </footer>
+    </div>
+
+    <script>
+
+        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzzbctiNuqKW10e1Uzwdzv6R9SeApVNhE4silRcbL0VpSV-Za7dbJW9bJ2dYGijqgqRJw/exec';
+
+        let allRows = [];
+        let filtered = [];
+        let sortState = { key: 'date', dir: -1 };
+
+        const money = (n) => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+            { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+        ));
+
+        function show(id) {
+            ['loadingState', 'errorState', 'content'].forEach(s => {
+                document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
+            });
+        }
+
+        async function loadData() {
+            show('loadingState');
+            try {
+                const res = await fetch(SHEET_URL);
+                if (!res.ok) throw new Error('Request failed (' + res.status + ')');
+                const rows = await res.json();
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    document.getElementById('errorState').textContent = 'No documents logged yet.';
+                    show('errorState');
+                    return;
+                }
+
+                allRows = rows.map(r => {
+                    const d = new Date(r.invoiceDate);
+                    return {
+                        number: r.invoiceNumber || '',
+                        type: String(r.documentType || '').toLowerCase(),
+                        client: r.customerName || r.customerBusiness || 'Unknown',
+                        business: r.customerBusiness || '',
+                        address: r.address || '',
+                        date: isNaN(d) ? null : d,
+                        rawDate: r.invoiceDate || '',
+                        jobDate: r.jobDate || 'N/A',
+                        amount: parseFloat(r.amount) || 0,
+                        comments: r.comments || 'N/A'
+                    };
+                }).filter(r => r.date);
+
+                populateYears();
+                applyFilters();
+                show('content');
+            } catch (err) {
+                document.getElementById('errorState').textContent =
+                    'Could not load records: ' + err.message + '. Check that the Apps Script doGet is deployed.';
+                show('errorState');
+                console.error(err);
+            }
+        }
+
+        function populateYears() {
+            const years = [...new Set(allRows.map(r => r.date.getFullYear()))].sort((a, b) => b - a);
+            const opts = years.map(y => `<option value="${y}">${y}</option>`).join('');
+            document.getElementById('yearFilter').innerHTML = '<option value="">All years</option>' + opts;
+            document.getElementById('exportYear').innerHTML = '<option value="">Select year…</option>' + opts;
+        }
+
+        function applyFilters() {
+            const q = document.getElementById('search').value.trim().toLowerCase();
+            const type = document.getElementById('typeFilter').value;
+            const year = document.getElementById('yearFilter').value;
+
+            filtered = allRows.filter(r => {
+                if (type && r.type !== type) return false;
+                if (year && r.date.getFullYear() !== Number(year)) return false;
+                if (q) {
+                    const hay = (r.client + ' ' + r.address + ' ' + r.number).toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+
+            renderTable();
+        }
+
+        function sortBy(key) {
+            if (sortState.key === key) sortState.dir *= -1;
+            else { sortState.key = key; sortState.dir = (key === 'amount' || key === 'date' || key === 'number') ? -1 : 1; }
+            renderTable();
+        }
+
+        function renderTable() {
+            const rows = [...filtered].sort((a, b) => {
+                let av = a[sortState.key], bv = b[sortState.key];
+                if (sortState.key === 'number') { av = Number(av) || 0; bv = Number(bv) || 0; }
+                if (av < bv) return -1 * sortState.dir;
+                if (av > bv) return 1 * sortState.dir;
+                return 0;
+            });
+
+            document.getElementById('resultCount').textContent =
+                `${rows.length} document${rows.length === 1 ? '' : 's'}` +
+                (rows.length !== allRows.length ? ` (of ${allRows.length})` : '');
+
+            const tbody = document.getElementById('tbody');
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:32px;">No documents match your filters.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((r, i) => {
+                const idx = allRows.indexOf(r);
+                const convertBtn = r.type === 'estimate'
+                    ? `<button class="mini convert" onclick="convertToInvoice(${idx})">→ Invoice</button>`
+                    : '';
+                return `
+                <tr>
+                    <td class="num">${r.number ? esc(r.number) : '—'}</td>
+                    <td>${r.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                    <td><span class="tag ${esc(r.type)}">${esc(r.type)}</span></td>
+                    <td>${esc(r.client)}</td>
+                    <td style="color:var(--dim);">${esc(r.address)}</td>
+                    <td class="amt">${money(r.amount)}</td>
+                    <td>
+                        <div class="actions">
+                            ${convertBtn}
+                            <button class="mini" onclick="redownload(${idx})">Re-download</button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Rebuilds the original PDF from the stored record
+        function redownload(idx) {
+            const r = allRows[idx];
+            if (!r) return;
+            try {
+                downloadInvoicePDF({
+                    documentType: r.type,
+                    invoiceNumber: r.number,
+                    customer: { name: r.client, business: r.business, address: '' },
+                    address: r.address,
+                    invoiceDate: r.rawDate,
+                    jobDate: r.jobDate,
+                    amount: r.amount,
+                    comments: r.comments
+                });
+            } catch (err) {
+                alert('Could not rebuild the PDF: ' + err.message);
+                console.error(err);
+            }
+        }
+
+        // Sends the estimate's details to the generator, prefilled as an invoice
+        function convertToInvoice(idx) {
+            const r = allRows[idx];
+            if (!r) return;
+            const p = new URLSearchParams({
+                client: r.client,
+                address: r.address,
+                jobDate: r.jobDate,
+                amount: String(r.amount),
+                comments: r.comments
+            });
+            window.location.href = 'index.html?' + p.toString();
+        }
+
+        // Year-end CSV for a bookkeeper — invoices only, since estimates aren't income
+        function exportTaxCsv() {
+            const year = document.getElementById('exportYear').value;
+            if (!year) { alert('Pick a year to export.'); return; }
+
+            const rows = allRows
+                .filter(r => r.type === 'invoice' && r.date.getFullYear() === Number(year))
+                .sort((a, b) => a.date - b.date);
+
+            if (rows.length === 0) { alert('No invoices found for ' + year + '.'); return; }
+
+            const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            const header = ['Invoice Number', 'Date', 'Client', 'Job Site Address', 'Job Date', 'Amount', 'Comments'];
+            const lines = [header.map(q).join(',')];
+
+            let total = 0;
+            rows.forEach(r => {
+                total += r.amount;
+                lines.push([
+                    q(r.number),
+                    q(r.date.toLocaleDateString('en-US')),
+                    q(r.client),
+                    q(r.address),
+                    q(r.jobDate),
+                    q(r.amount.toFixed(2)),
+                    q(r.comments)
+                ].join(','));
+            });
+            lines.push('');
+            lines.push([q(''), q(''), q(''), q(''), q('TOTAL'), q(total.toFixed(2)), q('')].join(','));
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `MV_Drywall_Invoices_${year}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
