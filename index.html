@@ -188,26 +188,14 @@
                 <label for="customer">Select Contact *</label>
                 <select id="customer" required>
                     <option value="">-- Choose a Contact --</option>
-                    <option value="Showcase Homes, Inc.">Showcase Homes, Inc.</option>
-                    <option value="Beier Custom Homes">Beier Custom Homes (Brenda Beier)</option>
-                    <option value="Kadsen Corporation">Kadsen Corporation (Barbara Kadrlik)</option>
-                    <option value="Emerald Homes Omaha">Emerald Homes Omaha</option>
-                    <option value="Jeff Swanson">Jeff Swanson</option>
-                    <option value="Heath Haner">Heath Haner</option>
-                    <option value="Blum Brothers Construction">Blum Brothers Construction </option>
-                    <option value="Sobota Group LLC">Sobota Group LLC (Jim Sobota)</option>
-                    <option value="Eagle Custom Homes, Inc.">Eagle Custom Homes, Inc. (Dean Vogel)</option>
-                    <option value="Don Hubka">Don Hubka</option>
-                    <option value="Nate Herbst">Nate Herbst</option>
-                    <option value="Russ Hays">Russ Hays</option>
-                    <option value="Jason Flippin">Jason Flippin</option>
+                    <option value="new-york-homes">New York Homes</option>
                     <option value="custom">Custom Contact (Enter Below)</option>
                 </select>
             </div>
 
             <div class="form-group" id="customCustomerGroup" style="display: none;">
-                <label for="customCustomerName">Contact Name *</label>
-                <input type="text" id="customCustomerName" placeholder="Enter contact name">
+                <label for="customCustomerName">Customer Name *</label>
+                <input type="text" id="customCustomerName" placeholder="Enter customer name">
                 
                 <label for="customCustomerBusiness" style="margin-top: 15px;">Business Name</label>
                 <input type="text" id="customCustomerBusiness" placeholder="Enter business name">
@@ -287,90 +275,12 @@
 
         // Customer database
         const customers = {
-            'Showcase Homes, Inc.': {
-                name: 'Showcase Homes, Inc.',
-                business: '20202 Patton St, Gretna, NE 68028',
-                phone: ''
-            },
-
-            'Beier Custom Homes': {
-                name: 'Beier Custom Homes',
-                business: '21872 Elderberry RdGlenwood, IA 51534',
-                phone: 'brendabeier@msn.com'
-            },
-
-            'Kadsen Corporation': {
-                name: 'Barbara Kadrlik',
-                business: 'Kadsen Corporation',
-                phone: '(402) 880-0070'
-            },
-
-            'Emerald Homes Omaha': {
-                name: 'Emerald Homes Omaha',
-                business: 'accounting@emeraldhomesomaha.com',
-                phone: ''
-            },
-
-            'Jeff Swanson': {
-                name: 'Jeff Swanson',
-                business: 'jbswanson64@gmail.com',
-                phone: '(402) 699-0129'
-            },
-
-            'Heath Haner': {
-                name: 'Heath Haner',
-                business: 'heathhaner@hotmail.com',
-                phone: ''
-            },
-
-            'Blum Brothers Construction': {
-                name: 'Blum Brothers Construction',
-                business: 'Dblum23@hotmail.com',
-                phone: ''
-            },
-
-            'Sobota Group LLC': {
-                name: 'Sobota Group LLC',
-                business: '5152 N 90th St, Omaha NE 68136',
-                phone: 'jimsobota@hotmail.com'
-            },
-
-            'Eagle Custom Homes, Inc.': {
-                name: 'Eagle Custom Homes, Inc.',
-                business: 'dean.vogel@cox.net',
-                phone: ''
-            },
-
-            'Don Hubka': {
-                name: 'Don Hubka',
-                business: '55 Lakewood Villa, Council Bluﬀs, Iowa 51501',
-                phone: 'bhubka10@aol.com'
-            },
-
-            'Nate Herbst': {
-                name: 'Nate Herbst',
-                business: 'nateherbst13@gmail.com',
-                phone: '(402) 889-2176'
-            },
-
-            'Russ Hays': {
-                name: 'Russ Hays',
-                business: 'rhcinc@cox.net',
-                phone: ''
-            },
-
-            'Jason Flippin': {
-                name: 'Jason Flippin',
-                business: 'jason@aec-builders.com',
-                phone: ''
-            },
-
-            'Larry Larson': {
-                name: 'Larry Larson',
-                business: 'larsonbackhoe@gmail.com',
-                phone: '(402) 681-0269'
-            },
-            
+            'new-york-homes': {
+                name: 'New York Homes',
+                business: 'New York Homes Development',
+                phone: '(518) 555-0000',
+                address: '20000 Paper St, Albany, NY 90000'
+            }
         };
 
         // Current location
@@ -603,149 +513,140 @@
 
         function generatePDF(data) {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const leftMargin = 20;
-            const rightEdge = 190;
-            let yPos = 22;
-            
-            // Formats a number as currency with thousands commas, e.g. 23350 -> $23,350.00
+            // Points + US Letter, matching the reference invoice exactly
+            const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+
+            // Column x-positions (points), taken from the reference layout
+            const L = 47;          // left text margin
+            const X_JOB = 281;     // JOB DATE column
+            const X_AMT = 373;     // AMOUNT column
+            const RULE_L = 45;     // horizontal rule left
+            const RULE_R = 459;    // horizontal rule right
+
+            // Reference shows whole dollars, e.g. $23,350
             const formatMoney = (n) => '$' + Number(n).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
+                maximumFractionDigits: 0
             });
-            
-            // Small document type label (INVOICE or ESTIMATE) above company name
-            const docTypeDisplay = data.documentType.toUpperCase();
+
+            // --- Header ---
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text(docTypeDisplay, leftMargin, yPos);
-            yPos += 12;
-            
-            // Large company name
-            doc.setFontSize(26);
-            doc.setFont(undefined, 'bold');
-            doc.text('MV Drywall Inc.', leftMargin, yPos);
-            yPos += 11;
-            
-            // Company address and phone
+            doc.text(data.documentType.toUpperCase(), L, 66);
+
+            // Company name: reference uses Georgia (regular weight). jsPDF ships Times
+            // as its built-in serif; swap to 'georgia' here if you embed the real font.
+            doc.setFont('times', 'normal');
+            doc.setFontSize(29);
+            doc.text('MV Drywall Inc.', L, 110);
+
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
-            doc.setFont(undefined, 'normal');
-            doc.text('2307 Virginia St', leftMargin, yPos);
-            yPos += 5;
-            doc.text('Bellevue, NE 68147', leftMargin, yPos);
-            yPos += 6;
-            doc.text('(402)-981-9930', leftMargin, yPos);
-            yPos += 11;
-            
-            // DATE
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
+            doc.text('2307 Virginia St', L, 135);
+            doc.text('Bellevue, NE 68147', L, 147);
+            doc.text('(402)-981-9930', L, 165);
+
             const formattedDate = new Date(data.invoiceDate).toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: '2-digit'
+                month: '2-digit', day: '2-digit', year: '2-digit'
             });
-            doc.text(`DATE: ${formattedDate}`, leftMargin, yPos);
-            yPos += 12;
-            
-            // BILL TO (prominent)
-            doc.setFontSize(15);
-            doc.setFont(undefined, 'normal');
-            doc.text('BILL TO', leftMargin, yPos);
-            yPos += 8;
-            
-            // Customer name / business
-            doc.setFontSize(11);
-            const billToName = data.customer.business || data.customer.name;
-            doc.text(billToName, leftMargin, yPos);
-            yPos += 6;
-            
-            // Customer business address (wrapped)
-            if (data.customer.address) {
-                const custAddrLines = doc.splitTextToSize(data.customer.address, 90);
-                doc.text(custAddrLines, leftMargin, yPos);
-                yPos += (custAddrLines.length * 5) + 6;
-            } else {
-                yPos += 6;
-            }
-            
-            yPos += 6;
-            
-            // Line above the header row
-            doc.setLineWidth(0.4);
-            doc.line(leftMargin, yPos, rightEdge, yPos);
-            yPos += 6;
-            
-            // Table headers
-            doc.setFont(undefined, 'bold');
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
-            doc.text('HOUSE ADDRESS', leftMargin, yPos);
-            doc.text('JOB DATE', 120, yPos);
-            doc.text('AMOUNT', 162, yPos);
-            yPos += 3;
-            
-            // Draw line under headers
-            doc.setLineWidth(0.4);
-            doc.line(leftMargin, yPos, rightEdge, yPos);
-            yPos += 8;
-            
-            // Table content
-            doc.setFont(undefined, 'normal');
+            doc.text('DATE: ' + formattedDate, L, 189);
+
+            // BILL TO — serif in the reference
+            doc.setFont('times', 'normal');
+            doc.setFontSize(15);
+            doc.text('BILL TO', L, 218);
+
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
-            
-            // Address (with word wrap if needed)
-            const addressLines = doc.splitTextToSize(data.address, 95);
-            doc.text(addressLines, leftMargin, yPos);
-            
-            // Job date
-            doc.text(String(data.jobDate), 120, yPos);
-            
-            // Amount (bold)
-            doc.setFont(undefined, 'bold');
-            doc.text(formatMoney(data.amount), 162, yPos);
-            
-            const addressHeight = addressLines.length * 5;
-            yPos += Math.max(addressHeight, 6) + 8;
-            
+            const billToName = data.customer.name || data.customer.business || '';
+            doc.text(billToName, L, 238);
+
+            let yBill = 256;
+            if (data.customer.address) {
+                const custLines = doc.splitTextToSize(data.customer.address, 232);
+                custLines.forEach((ln, i) => doc.text(ln, L, yBill + i * 12));
+            }
+
+            // --- Table ---
+            const Y_TOP_RULE = 290;    // rule above the header row
+            const Y_HEAD = 314;        // header text baseline
+            const Y_MID_RULE = 320;    // thick (2pt) rule under the header row
+            const Y_ROW = 345;         // data row baseline
+            const Y_TOTAL = 376;       // TOTAL row baseline
+            const Y_BOT_RULE = 380;    // rule under TOTAL
+
+            // Rule above headers
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(1);
+            doc.line(RULE_L, Y_TOP_RULE, RULE_R, Y_TOP_RULE);
+
+            // Header text
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.text('HOUSE ADDRESS', L, Y_HEAD);
+            doc.text('JOB DATE', X_JOB, Y_HEAD);
+            doc.text('AMOUNT', X_AMT, Y_HEAD);
+
+            // Shaded cells (drawn before text so the text sits on top)
+            doc.setFillColor(217, 217, 217);                  // grey ~0.85
+            doc.rect(RULE_L, Y_MID_RULE, 234, 30, 'F');       // house address cell
+            doc.rect(371, Y_MID_RULE, 88, 30, 'F');           // amount cell
+            doc.setFillColor(251, 252, 251);                  // near-white job date column
+            doc.rect(279, Y_MID_RULE, 92, 30, 'F');
+            doc.rect(279, 350, 92, 30, 'F');
+
+            // Rule under headers: 2pt across the full width, so all three cells
+            // (house address, job date, amount) share the same thick top edge
+            doc.setLineWidth(2);
+            doc.line(RULE_L - 1, Y_MID_RULE, RULE_R, Y_MID_RULE);
+
+            // Data row
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            const addrLines = doc.splitTextToSize(data.address, 226);
+            doc.text(addrLines, L, Y_ROW);
+            doc.text(String(data.jobDate), X_JOB, Y_ROW);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(formatMoney(data.amount), X_AMT, Y_ROW);
+
             // TOTAL row
-            doc.setFont(undefined, 'normal');
-            doc.text('TOTAL', 120, yPos);
-            doc.setFont(undefined, 'bold');
-            doc.text(formatMoney(data.amount), 162, yPos);
-            yPos += 5;
-            
-            // Line below the TOTAL row
-            doc.setLineWidth(0.4);
-            doc.line(leftMargin, yPos, rightEdge, yPos);
-            yPos += 12;
-            
-            // Comments - bold only when left as N/A, normal weight when text is added
+            doc.setFont('helvetica', 'normal');
+            doc.text('TOTAL', X_JOB, Y_TOTAL);
+            doc.setFont('helvetica', 'bold');
+            doc.text(formatMoney(data.amount), X_AMT, Y_TOTAL);
+
+            // Rule under TOTAL
+            doc.setLineWidth(1);
+            doc.line(RULE_L, Y_BOT_RULE, RULE_R, Y_BOT_RULE);
+
+            // Comments: label bold, value regular (bold too when left as N/A)
+            const commentsIsDefault = String(data.comments).trim().toUpperCase() === 'N/A';
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(11);
-            const commentsIsDefault = data.comments.trim().toUpperCase() === 'N/A';
-            doc.setFont(undefined, commentsIsDefault ? 'bold' : 'normal');
-            doc.text(`Comments: ${data.comments}`, leftMargin, yPos);
-            
-            // Generate filename
+            doc.text('Comments:', L, 406);
+            const labelW = doc.getTextWidth('Comments: ');
+            doc.setFont('helvetica', commentsIsDefault ? 'bold' : 'normal');
+            doc.text(String(data.comments), L + labelW, 406);
+
+            // Filename
             const dateStr = formattedDate.replace(/\//g, '-');
-            const customerName = data.customer.name.replace(/\s+/g, '_');
+            const clientName = (data.customer.name || 'Client').replace(/\s+/g, '_');
             const docTypeFile = data.documentType.charAt(0).toUpperCase() + data.documentType.slice(1);
-            const fileName = `MV_Drywall_${docTypeFile}_${customerName}_${dateStr}.pdf`;
-            
-            // Save PDF
+            const fileName = `MV_Drywall_${docTypeFile}_${clientName}_${dateStr}.pdf`;
+
             doc.save(fileName);
-            
-            // Log this invoice to the Google Sheet (background, non-blocking)
+
+            // Log to the Google Sheet (background, non-blocking)
             logToSheet(data);
-            
-            // Show success message
+
             const successMsg = document.getElementById('successMessage');
             const docTypeForMessage = data.documentType.charAt(0).toUpperCase() + data.documentType.slice(1);
             successMsg.textContent = `${docTypeForMessage} PDF generated and downloaded successfully!`;
             successMsg.style.display = 'block';
-            setTimeout(() => {
-                successMsg.style.display = 'none';
-            }, 3000);
+            setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
         }
     </script>
 </body>
