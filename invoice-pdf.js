@@ -85,21 +85,33 @@ function buildInvoicePDF(data) {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    const billToName = data.customer.name || data.customer.business || '';
-    doc.text(billToName, L, 238);
 
-    if (data.customer.address) {
-        const custLines = doc.splitTextToSize(data.customer.address, 260);
-        custLines.forEach((ln, i) => doc.text(ln, L, 256 + i * 12));
+    // Build the block line by line: name, then business and phone when present,
+    // then the address (which may itself wrap).
+    const billLines = [];
+    const cust = data.customer || {};
+    if (cust.name) billLines.push(cust.name);
+    if (cust.business) billLines.push(cust.business);
+    if (cust.phone) billLines.push(cust.phone);
+    if (cust.address) {
+        doc.splitTextToSize(cust.address, 260).forEach(ln => billLines.push(ln));
     }
 
+    const BILL_START = 238;
+    const BILL_STEP = 13;
+    billLines.forEach((ln, i) => doc.text(ln, L, BILL_START + i * BILL_STEP));
+    const billBottom = BILL_START + Math.max(billLines.length - 1, 0) * BILL_STEP;
+
     // --- Table ---
-    const Y_TOP_RULE = 290;
-    const Y_HEAD = 314;
-    const Y_MID_RULE = 320;    // thick (2pt) rule under the header row
-    const Y_ROW = 345;
-    const Y_TOTAL = 376;
-    const Y_BOT_RULE = 380;
+    // Sits at its usual place, but slides down if the BILL TO block grew tall
+    // enough to crowd it. Keeps the two from ever overlapping.
+    const Y_TOP_RULE = Math.max(290, billBottom + 24);
+    const Y_HEAD = Y_TOP_RULE + 24;
+    const Y_MID_RULE = Y_TOP_RULE + 30;    // thick (2pt) rule under the header row
+    const Y_ROW = Y_TOP_RULE + 55;
+    const Y_TOTAL = Y_TOP_RULE + 86;
+    const Y_BOT_RULE = Y_TOP_RULE + 90;
+    const Y_COMMENTS = Y_TOP_RULE + 116;
 
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(1);
@@ -149,10 +161,10 @@ function buildInvoicePDF(data) {
     const commentsIsDefault = comments.trim().toUpperCase() === 'N/A';
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.text('Comments:', L, 406);
+    doc.text('Comments:', L, Y_COMMENTS);
     const labelW = doc.getTextWidth('Comments: ');
     doc.setFont('helvetica', commentsIsDefault ? 'bold' : 'normal');
-    doc.text(comments, L + labelW, 406);
+    doc.text(comments, L + labelW, Y_COMMENTS);
 
     // --- Footer ---
     // Anchors the bottom of the page and repeats the invoice number as a secondary
@@ -181,12 +193,18 @@ function buildInvoicePDF(data) {
 }
 
 function invoiceFileName(data) {
-    const dateStr = formatInvoiceDate(data.invoiceDate).replace(/\//g, '-');
-    const clientName = (data.customer.name || 'Client').replace(/\s+/g, '_');
     const typeName = String(data.documentType);
-    const docTypeFile = typeName.charAt(0).toUpperCase() + typeName.slice(1);
-    const num = data.invoiceNumber ? '_' + data.invoiceNumber : '';
-    return `MV_Drywall_${docTypeFile}${num}_${clientName}_${dateStr}.pdf`;
+    const docType = typeName.charAt(0).toUpperCase() + typeName.slice(1);
+
+    // Numbered invoices get a clean, unique name: "MV Drywall Invoice #1001.pdf"
+    if (data.invoiceNumber) {
+        return `MV Drywall ${docType} #${data.invoiceNumber}.pdf`;
+    }
+
+    // Estimates have no number, so fall back to client + date to keep names unique
+    const clientName = (data.customer && data.customer.name) || 'Client';
+    const dateStr = formatInvoiceDate(data.invoiceDate).replace(/\//g, '-');
+    return `MV Drywall ${docType} - ${clientName} - ${dateStr}.pdf`;
 }
 
 // Builds and immediately downloads the PDF.
