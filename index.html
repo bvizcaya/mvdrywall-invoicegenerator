@@ -757,7 +757,51 @@
                 nextInvoiceNumber = Number(data.invoiceNumber) + 1;
                 updateInvoiceNumberField();
             }
+
+            // Clear the form for the next document
+            resetForm();
         }
+
+        // Clears the per-invoice fields after one is generated, while keeping the
+        // things it makes sense to keep (document type, and the invoice date reset
+        // to today rather than blank). The invoice number was already advanced above.
+        function resetForm() {
+            // Client selection back to the placeholder, and hide the custom fields
+            document.getElementById('customer').value = '';
+            document.getElementById('customCustomerGroup').style.display = 'none';
+            document.getElementById('customCustomerName').value = '';
+            document.getElementById('customCustomerBusiness').value = '';
+            document.getElementById('customCustomerPhone').value = '';
+            document.getElementById('customCustomerAddress').value = '';
+
+            // Job / amount / comments fields
+            document.getElementById('streetAddress').value = '';
+            document.getElementById('jobDate').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('comments').value = '';
+
+            // Invoice date back to today (not blank — that's the sensible default)
+            setTodayDate();
+
+            // Clear the geocoded location and its status line
+            currentLocation = { city: '', state: '', zipCode: '' };
+            const info = document.getElementById('locationInfo');
+            if (info) {
+                info.innerHTML = 'Enter street address to auto-detect city, state, and ZIP';
+                info.style.color = '#aaaaaa';
+            }
+
+            // If we're mid estimate→invoice conversion, drop that banner
+            const banner = document.getElementById('convertBanner');
+            if (banner) banner.style.display = 'none';
+
+            // Re-evaluate the submit button (it should go back to inactive/grey)
+            checkFormValidity();
+
+            // Return focus to the top so the next entry starts cleanly
+            document.getElementById('documentType').focus();
+        }
+        
     </script>
 </body>
 </html>
