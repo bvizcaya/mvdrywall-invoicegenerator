@@ -206,7 +206,7 @@
                 <div class="kpi">
                     <div class="label">YoY Growth</div>
                     <div class="value" id="kpiYoY">—</div>
-                    <div class="sub" id="kpiYoYSub">vs last full year</div>
+                    <div class="sub" id="kpiYoYSub">year-to-date vs last year</div>
                 </div>
             </div>
 
@@ -713,19 +713,41 @@
             const sub = document.getElementById('kpiYoYSub');
             el.className = 'value';
 
-            // Compare the two most recent COMPLETE years present in the data
-            const byYear = {};
-            invoices.forEach(d => { const y = d.date.getFullYear(); byYear[y] = (byYear[y] || 0) + d.amount; });
-            const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
-            if (years.length < 2) { el.textContent = '—'; sub.textContent = 'need 2+ years'; return; }
+            // Year-to-date vs the same window last year, so a partial current year
+            // isn't unfairly compared against a full prior year.
+            const now = new Date();
+            const curYear = now.getFullYear();
+            const prevYear = curYear - 1;
 
-            const curr = years[years.length - 1];
-            const prev = years[years.length - 2];
-            const growth = byYear[prev] ? (byYear[curr] - byYear[prev]) / byYear[prev] * 100 : 0;
+            // Cutoff = today's month/day. Anything at or before this point counts.
+            const curMonth = now.getMonth();
+            const curDay = now.getDate();
+            const withinYtd = (date) => {
+                const m = date.getMonth();
+                return m < curMonth || (m === curMonth && date.getDate() <= curDay);
+            };
+
+            let currTotal = 0, prevTotal = 0, currHas = false, prevHas = false;
+            invoices.forEach(d => {
+                const y = d.date.getFullYear();
+                if (y === curYear && withinYtd(d.date)) { currTotal += d.amount; currHas = true; }
+                else if (y === prevYear && withinYtd(d.date)) { prevTotal += d.amount; prevHas = true; }
+            });
+
+            // Need both years present in the year-to-date window to compare
+            if (!currHas || !prevHas || prevTotal === 0) {
+                el.textContent = '—';
+                sub.textContent = 'need 2 years of data';
+                return;
+            }
+
+            const growth = (currTotal - prevTotal) / prevTotal * 100;
             const sign = growth >= 0 ? '+' : '';
             el.textContent = sign + growth.toFixed(0) + '%';
             el.classList.add(growth >= 0 ? 'up' : 'down');
-            sub.textContent = `${prev} → ${curr}`;
+
+            const asOf = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            sub.textContent = `YTD thru ${asOf} vs ${prevYear}`;
         }
 
         function renderRevenueByMonth(invoices) {
